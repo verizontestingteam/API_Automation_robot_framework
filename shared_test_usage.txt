@@ -1,0 +1,73 @@
+Robot Framework Shared Test Setup
+=================================
+
+1. Shared CSV file
+------------------
+Define the CSV path once in a common resource file:
+
+resources/variables/api_variables.robot
+
+${CSV_FILE}    ${CURDIR}/../../testdata/api/product_offering.csv
+
+Then in any test case:
+
+*** Settings ***
+Resource    ../../resources/variables/api_variables.robot
+Library    ../../python/csv_reader.py
+
+*** Test Cases ***
+Example Test
+    ${rows}=    Read Csv    ${CSV_FILE}
+
+This makes the same CSV usable in multiple test cases without changing the path in each file.
+
+2. Shared Python validation functions
+-------------------------------------
+Python helpers are reusable when imported as a Robot Library:
+
+*** Settings ***
+Library    ../../python/api_custom_validations.py
+
+Then call any function directly:
+
+Validate Response Status    ${response}    200
+Validate Response Not Empty    ${response}
+Validate Response Time    ${response}    2000
+Validate Response Fields    ${response}    id    code    name
+
+3. Shared architecture
+----------------------
+- tests/APi/test_product_offering.robot -> test case file
+- testdata/api/product_offering.csv -> data input
+- resources/variables/api_variables.robot -> global variables
+- resources/keywords/api_keywords.robot -> API method keywords
+- python/csv_reader.py -> CSV parsing helper
+- python/api_custom_validations.py -> response validation helpers
+
+4. Reuse pattern across multiple tests
+-------------------------------------
+Add this to each test file:
+
+*** Settings ***
+Resource    ../../resources/variables/api_variables.robot
+Library    ../../python/csv_reader.py
+Library    ../../python/api_custom_validations.py
+
+Then all tests can use:
+- ${CSV_FILE}
+- Read Csv
+- Validate Response Status
+- Validate Response Fields
+- etc.
+
+5. Example response validation flow
+-----------------------------------
+${response}=    Get Product Offering    ${related_party}    ${depth}    ${code}    ${category_name}    ${fields_value}
+
+Validate Response Status    ${response}    200
+Validate Response Not Empty    ${response}
+Validate Response Time    ${response}    2000
+Validate Response Fields    ${response}    @{fields}
+Validate Product Offering Response    ${response}    related_party=${related_party}    code=${code}    category_name=${category_name}
+
+This ensures the response is valid, the payload is present, performance is acceptable, and the expected values match the CSV input.
