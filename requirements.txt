@@ -1,0 +1,66 @@
+# ============================================================
+# Enterprise Automation Framework
+# Python + Robot Framework + Playwright + Selenium + API + AI
+# Recommended Python: 3.13
+# ============================================================
+
+# -------------------------
+# Robot Framework
+# -------------------------
+robotframework
+robotframework-browser
+robotframework-seleniumlibrary
+robotframework-requests
+robotframework-jsonlibrary
+robotframework-datadriver
+robotframework-faker
+robotframework-pabot
+allure-robotframework
+
+# -------------------------
+# Browser Automation
+# -------------------------
+playwright
+selenium
+
+# -------------------------
+# API Automation
+# -------------------------
+requests
+httpx
+jsonschema
+jsonpath-ng
+python-dateutil
+
+# -------------------------
+# Configuration / Test Data
+# -------------------------
+PyYAML
+python-dotenv
+openpyxl
+pandas
+Faker
+
+# -------------------------
+# Database Validation
+# -------------------------
+pymongo
+oracledb
+
+# -------------------------
+# AI Integration
+# -------------------------
+openai
+
+# -------------------------
+# Logging / Utilities
+# -------------------------
+colorlog
+tenacity
+
+# -------------------------
+# Code Quality
+# -------------------------
+pytest
+black
+ruff
