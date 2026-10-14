@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Generated Robot Framework reports and results
+/log.html
+/output.xml
+/report.html
+/Reports/
+/results/
+/tests/API/reports/
+/tests/API/results/

@@ -16,6 +16,7 @@ robotframework-datadriver
 robotframework-faker
 robotframework-pabot
 allure-robotframework
+python-docx
 
 # -------------------------
 # Browser Automation

@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API Automation Robot Framework — Architecture and Workflow</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172b4d;
+      --muted: #526581;
+      --line: #d8e1ee;
+      --blue: #eaf2ff;
+      --teal: #e7f7f4;
+      --gold: #fff5dc;
+      --purple: #f2edff;
+      --green: #e8f6eb;
+      --surface: #fff;
+      --page: #f4f7fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font: 16px/1.6 "Segoe UI", Arial, sans-serif;
+    }
+    header {
+      padding: 42px max(24px, calc((100vw - 1120px) / 2));
+      background: linear-gradient(120deg, #123a68, #176b87);
+      color: white;
+    }
+    header h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); }
+    header p { max-width: 850px; margin: 0; color: #e1efff; }
+    main { max-width: 1120px; margin: 28px auto 60px; padding: 0 22px; }
+    section {
+      margin: 22px 0;
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: 0 5px 18px #1a365408;
+    }
+    h2 { margin: 0 0 14px; font-size: 24px; }
+    h3 { margin: 20px 0 8px; font-size: 18px; }
+    p, li { color: var(--muted); }
+    code {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: #edf2f8;
+      color: #203956;
+      font: .92em Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .diagram-wrap { overflow-x: auto; }
+    .diagram { display: block; width: 100%; min-width: 820px; height: auto; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-top: 14px; color: var(--muted); }
+    .legend span::before {
+      display: inline-block; width: 12px; height: 12px; margin-right: 7px;
+      border: 1px solid #b6c5d8; border-radius: 3px; content: ""; vertical-align: -1px;
+    }
+    .legend .data::before { background: var(--gold); }
+    .legend .robot::before { background: var(--blue); }
+    .legend .api::before { background: var(--teal); }
+    .legend .check::before { background: var(--purple); }
+    .legend .result::before { background: var(--green); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfdff;
+    }
+    .card h3 { margin: 0 0 7px; }
+    .card p { margin: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { padding: 10px 12px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #eef4fb; color: var(--ink); }
+    td { color: var(--muted); }
+    pre {
+      overflow-x: auto; padding: 16px; border-radius: 9px;
+      background: #172b4d; color: #ecf4ff; line-height: 1.55;
+    }
+    .note {
+      padding: 14px 16px; border-left: 4px solid #e6a700;
+      background: #fff8e6; color: #5c4a1b;
+    }
+    .timeline { counter-reset: workflow; list-style: none; padding: 0; }
+    .timeline li {
+      position: relative; margin: 0 0 14px 17px; padding: 0 0 14px 34px;
+      border-left: 2px solid #cfdaea;
+    }
+    .timeline li:last-child { border-left-color: transparent; }
+    .timeline li::before {
+      counter-increment: workflow; content: counter(workflow);
+      position: absolute; left: -17px; top: 0; width: 30px; height: 30px;
+      display: grid; place-items: center; border-radius: 50%;
+      background: #176b87; color: white; font-weight: 700;
+    }
+    .timeline strong { color: var(--ink); }
+    .file-table td:first-child { min-width: 270px; }
+    .tag {
+      display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px;
+      border-radius: 12px; background: #edf2f8; color: #3f5877; font-size: 13px;
+    }
+    footer { padding: 22px; text-align: center; color: var(--muted); font-size: 14px; }
+    @media print {
+      body { background: white; }
+      section { break-inside: avoid; box-shadow: none; }
+      header { padding: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>API Automation Robot Framework</h1>
+    <p>Architecture, request lifecycle, validations, and report generation for the API test automation repository.</p>
+  </header>
+  <main>
+    <section>
+      <h2>End-to-end workflow</h2>
+      <p>Robot Framework loads a suite and its resources, reads each test-data row, builds an authenticated API request, validates the response, and writes execution artifacts.</p>
+      <div class="diagram-wrap">
+        <svg class="diagram" viewBox="0 0 1100 560" role="img" aria-labelledby="flow-title flow-desc" xmlns="http://www.w3.org/2000/svg">
+          <title id="flow-title">API test execution workflow</title>
+          <desc id="flow-desc">CSV test data flows to Robot Framework, which loads resources, requests an OAuth token, calls the product API, validates its response, and writes Robot reports that can be converted to DOCX.</desc>
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L9,3 z" fill="#6c7f99"/>
+            </marker>
+            <style>
+              .box { stroke:#bdcadd; stroke-width:1.5; rx:14; }
+              .label { font:600 17px "Segoe UI",Arial,sans-serif; fill:#172b4d; text-anchor:middle; }
+              .sub { font:14px "Segoe UI",Arial,sans-serif; fill:#526581; text-anchor:middle; }
+              .edge { stroke:#6c7f99; stroke-width:2; fill:none; marker-end:url(#arrow); }
+              .edge-label { font:13px "Segoe UI",Arial,sans-serif; fill:#526581; }
+            </style>
+          </defs>
+          <!-- Inputs -->
+          <rect class="box" x="35" y="42" width="250" height="94" fill="#fff5dc"/>
+          <text class="label" x="160" y="77">Test data CSV</text>
+          <text class="sub" x="160" y="103">product_offering.csv</text>
+          <text class="sub" x="160" y="123">compatibility_check.csv</text>
+
+          <rect class="box" x="35" y="205" width="250" height="94" fill="#eaf2ff"/>
+          <text class="label" x="160" y="240">Robot suite</text>
+          <text class="sub" x="160" y="266">tests\API\*.robot</text>
+          <text class="sub" x="160" y="286">loop through CSV rows</text>
+
+          <rect class="box" x="35" y="369" width="250" height="94" fill="#f2edff"/>
+          <text class="label" x="160" y="404">Reusable resources</text>
+          <text class="sub" x="160" y="430">API keywords + variables</text>
+          <text class="sub" x="160" y="450">Python validators + CSV reader</text>
+
+          <!-- Request / identity -->
+          <rect class="box" x="405" y="42" width="275" height="112" fill="#e7f7f4"/>
+          <text class="label" x="542" y="78">OAuth / IAM</text>
+          <text class="sub" x="542" y="105">Request access token</text>
+          <text class="sub" x="542" y="128">auth_keywords.robot</text>
+
+          <rect class="box" x="405" y="238" width="275" height="112" fill="#e7f7f4"/>
+          <text class="label" x="542" y="274">Target API</text>
+          <text class="sub" x="542" y="301">Product offering GET</text>
+          <text class="sub" x="542" y="324">or compatibility-check POST</text>
+
+          <!-- Validation -->
+          <rect class="box" x="790" y="42" width="275" height="135" fill="#f2edff"/>
+          <text class="label" x="927" y="77">Response checks</text>
+          <text class="sub" x="927" y="105">status • body • timing • headers</text>
+          <text class="sub" x="927" y="128">schema • code • party • category</text>
+          <text class="sub" x="927" y="151">channel membership • prices</text>
+
+          <rect class="box" x="790" y="238" width="275" height="112" fill="#e8f6eb"/>
+          <text class="label" x="927" y="274">Execution outputs</text>
+          <text class="sub" x="927" y="301">output.xml • log.html</text>
+          <text class="sub" x="927" y="324">report.html • pass/fail status</text>
+
+          <rect class="box" x="790" y="411" width="275" height="94" fill="#e8f6eb"/>
+          <text class="label" x="927" y="448">Optional DOCX report</text>
+          <text class="sub" x="927" y="477">generate_docx_report.py</text>
+
+          <!-- Flow arrows -->
+          <path class="edge" d="M160 136 L160 200"/>
+          <path class="edge" d="M160 299 L160 364"/>
+          <path class="edge" d="M285 250 C340 250 350 98 400 98"/>
+          <text class="edge-label" x="320" y="170">CSV row + suite setup</text>
+          <path class="edge" d="M542 154 L542 233"/>
+          <text class="edge-label" x="551" y="200">token</text>
+          <path class="edge" d="M285 265 C345 265 350 294 400 294"/>
+          <path class="edge" d="M680 294 L785 294"/>
+          <text class="edge-label" x="706" y="282">JSON response</text>
+          <path class="edge" d="M680 265 C735 265 735 112 785 112"/>
+          <path class="edge" d="M927 177 L927 233"/>
+          <text class="edge-label" x="940" y="211">validated result</text>
+          <path class="edge" d="M927 350 L927 406"/>
+          <text class="edge-label" x="941" y="383">output.xml</text>
+        </svg>
+      </div>
+      <div class="legend">
+        <span class="data">Test input</span><span class="robot">Robot orchestration</span>
+        <span class="api">API/authentication</span><span class="check">Validation</span>
+        <span class="result">Reports</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Authentication-to-end-to-end execution</h2>
+      <ol class="timeline">
+        <li><strong>Robot starts the selected suite.</strong> The command-line test path selects a suite such as <code>tests\API\channel_based_product_filteration.robot</code>. Robot parses its Settings and loads imported libraries, Python helpers, and resource files before executing the test case.</li>
+        <li><strong>Variables and test data are resolved.</strong> <code>resources\variables\api_variables.robot</code> provides the product API base URL, endpoint, and CSV path. The suite calls <code>Read Csv</code>, implemented in <code>python\csv_reader.py</code>, and gets a list of dictionaries—one per data row.</li>
+        <li><strong>The suite passes a row into the API keyword.</strong> The product suite reads related party, depth, product code, category, and channel. The compatibility suite reads correlation group, SKU list, channel, and brand. Each suite loops through its rows.</li>
+        <li><strong>The keyword clears proxy settings and requests an access token.</strong> <code>resources\keywords\api_keywords.robot</code> invokes <code>Get Access Token</code> from <code>resources\auth\auth_keywords.robot</code>. That keyword reads IAM configuration from <code>resources\auth\auth_variables.robot</code>, prepares the form-encoded token request, and sends it to the configured IAM token endpoint.</li>
+        <li><strong>The IAM response is checked.</strong> The auth keyword expects HTTP 200, parses the JSON response, requires an <code>access_token</code>, and verifies it is not empty. If authentication fails or the expected token is absent, keyword execution stops and the test row is reported as failed.</li>
+        <li><strong>The API request is assembled and sent.</strong> For product offerings, the keyword prepares the query parameters and sends a GET to the product-offering endpoint. For compatibility, it constructs a cart-item JSON body and sends a POST. Both use RequestsLibrary and expect any HTTP result initially so the custom checks can report status failures clearly.</li>
+        <li><strong>The response is validated against the test row.</strong> The suite checks status/body/time/header, then calls Python validation keywords for response shape and business rules. Product-row failures are caught and accumulated so remaining CSV rows can still run; after the loop, any accumulated failures fail the overall Robot test.</li>
+        <li><strong>Robot writes run artifacts.</strong> On completion, Robot writes <code>output.xml</code>, <code>log.html</code>, and <code>report.html</code> to the selected output directory. The XML records keyword execution and statuses; the HTML files present the run in browser-readable form.</li>
+        <li><strong>Optional post-processing creates a Word report.</strong> <code>python\generate_docx_report.py</code> reads the Robot XML and builds a DOCX summary. This is a separate command and is not automatically run by Robot itself.</li>
+      </ol>
+      <p class="note"><strong>Authentication implementation note:</strong> the live API keywords request a token before each API operation. The standalone <code>tests\API\test_auth.robot</code> is only a basic placeholder test that returns a sample token; it does not exercise the live IAM request flow.</p>
+    </section>
+
+    <section>
+      <h2>File-by-file guide</h2>
+      <p>This table explains the role of each main source, configuration, data, and reporting file in the current repository.</p>
+      <table class="file-table">
+        <thead><tr><th>File</th><th>What it does</th><th>Where it fits in end-to-end flow</th></tr></thead>
+        <tbody>
+          <tr><td><code>tests\API\channel_based_product_filteration.robot</code></td><td>Loads product CSV rows, extracts request fields, calls the product API keyword, runs response checks, collects row failures, and fails the suite if any row failed.</td><td>Product-offering test orchestration</td></tr>
+          <tr><td><code>tests\API\test_compatibility_check.robot</code></td><td>Loads compatibility CSV rows, splits the SKU string, sends compatibility requests, validates each response, and retries a false compatibility result up to three times.</td><td>Compatibility test orchestration</td></tr>
+          <tr><td><code>tests\API\test_auth.robot</code></td><td>Contains a small sample-token keyword and a basic non-empty-token test; it is not the live IAM integration test.</td><td>Placeholder/smoke test only</td></tr>
+          <tr><td><code>resources\auth\auth_variables.robot</code></td><td>Defines IAM endpoint and OAuth configuration inputs used by the live token keyword. Treat credential values in this file as secrets.</td><td>Token-request configuration</td></tr>
+          <tr><td><code>resources\auth\auth_keywords.robot</code></td><td>Removes proxy environment variables, creates an IAM RequestsLibrary session, posts form data, checks HTTP 200 and token presence, then returns the token.</td><td>Live authentication action</td></tr>
+          <tr><td><code>resources\variables\api_variables.robot</code></td><td>Defines API base URL, endpoint paths, CSV locations, and shared request settings including the compatibility cookie placeholder.</td><td>Endpoint and data configuration</td></tr>
+          <tr><td><code>resources\keywords\api_keywords.robot</code></td><td>Implements reusable product GET and compatibility POST keywords. It obtains a token, builds query/body data, creates an API session, sends the request, and returns the response.</td><td>Request construction and transport</td></tr>
+          <tr><td><code>python\csv_reader.py</code></td><td>Reads CSV with UTF-8 BOM support. For this repository's Robot-style header row, it normalizes variable names and returns each following row as a dictionary.</td><td>Test-data parsing</td></tr>
+          <tr><td><code>python\api_custom_validations.py</code></td><td>Provides Python keywords for status/body/time/header checks, product schema and business-field checks, channel and price membership checks, compatibility checks, and response parsing.</td><td>Reusable assertions called by Robot</td></tr>
+          <tr><td><code>tests\python\test_api_custom_validations.py</code></td><td>Pytest unit tests exercise the Python validators with fake responses, including requested-channel match/mismatch behavior and malformed data.</td><td>Offline validator regression tests</td></tr>
+          <tr><td><code>testdata\api\product_offering.csv</code></td><td>Contains product-offering request rows: related party, depth, code, category, and requested channel.</td><td>Input to the product suite</td></tr>
+          <tr><td><code>testdata\api\compatibility_check.csv</code></td><td>Contains compatibility request rows: correlation group, comma-separated SKUs, channel, and brand.</td><td>Input to the compatibility suite</td></tr>
+          <tr><td><code>python\generate_docx_report.py</code></td><td>Parses Robot <code>output.xml</code>, adds execution summary, test status, failure detail, and covered checks, then writes a Word document.</td><td>Optional report conversion after execution</td></tr>
+          <tr><td><code>run_parallel_tests.py</code></td><td>Starts Pabot with multiple workers, reads per-suite XML results, and creates individual report sets classified into pass/fail result folders.</td><td>Parallel orchestration and result classification</td></tr>
+          <tr><td><code>python\create_missing_validations_docx.py</code></td><td>Builds a separate analysis DOCX focused on validation gaps; it is not part of the normal suite execution path.</td><td>Optional analysis-document generator</td></tr>
+          <tr><td><code>requirements.txt</code></td><td>Lists Python packages used or available for Robot, API testing, reporting, browsers, data access, and other automation tasks.</td><td>Environment setup</td></tr>
+          <tr><td><code>readme.md</code></td><td>Provides repository notes and example commands for parallel execution and DOCX generation.</td><td>Human-facing setup guidance</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Product-offering suite validations</h2>
+      <p>For each row in <code>product_offering.csv</code>, the suite sends <code>relatedParty.name</code>, <code>depth</code>, <code>code</code>, <code>category.name</code>, and <code>channel.name</code> as query parameters.</p>
+      <ul>
+        <li>HTTP status must be 200; response body must be non-empty; response time must be at most 5000 ms; content type must be JSON.</li>
+        <li>Offering schema and lifecycle status are checked; returned code, related party, and category are compared with the CSV row.</li>
+        <li>The root offering is expected to have type <code>GroupProductOffering</code>; nested records are traversed for simple offerings and prices.</li>
+        <li>For each populated channel list, the requested channel must be present. Other channel names may also be present. Empty or null lists are skipped by the channel validator; malformed values fail.</li>
+        <li>The validity helper parses provided dates but currently does not enforce the current validity window.</li>
+      </ul>
+      <p class="note"><strong>Scope note:</strong> A CSV row whose code resolves directly to a root <code>SimpleProductOffering</code> does not meet the current root-type expectation. The channel validator is a membership check, not strict filtering.</p>
+    </section>
+
+    <section>
+      <h2>Compatibility-check suite</h2>
+      <p>The compatibility suite reads correlation group, SKU list, channel, and brand from CSV; posts a JSON cart request; validates status, response body, required response fields, and echoed correlation/SKU values. If the compatibility result is false, it retries up to three attempts and fails if it remains false.</p>
+    </section>
+
+    <section>
+      <h2>Running and locating reports</h2>
+      <h3>Run one API suite</h3>
+      <pre><code>python -m robot --outputdir reports\channel_based_product_filteration tests\API\channel_based_product_filteration.robot</code></pre>
+      <h3>Run the parallel test runner</h3>
+      <pre><code>.\.venv\Scripts\python.exe run_parallel_tests.py</code></pre>
+      <h3>Generate a DOCX from Robot XML</h3>
+      <pre><code>.\.venv\Scripts\python.exe python\generate_docx_report.py reports\channel_based_product_filteration\output.xml reports\channel_based_product_filteration\Product_Offering_Test_Report.docx</code></pre>
+      <p>Robot outputs include <code>output.xml</code>, <code>log.html</code>, and <code>report.html</code> inside the chosen output directory. The DOCX is generated separately from the XML.</p>
+    </section>
+
+    <section>
+      <h2>Configuration and safe handling</h2>
+      <p>Install dependencies from <code>requirements.txt</code> into the project virtual environment. Authentication values must be treated as secrets: do not include credentials or access tokens in reports, source control, screenshots, or shared documents. Prefer environment variables or a protected secret store for credentials.</p>
+      <p>The requirements manifest lists browser, database, and AI libraries in addition to API libraries. The workflows described here focus on the API suites and utilities actually present in the repository.</p>
+    </section>
+  </main>
+  <footer>Framework workflow documentation · Generated from repository structure and current Robot/Python sources.</footer>
+</body>
+</html>

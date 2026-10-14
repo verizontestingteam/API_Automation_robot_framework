@@ -37,7 +37,7 @@ Validate Response Fields    ${response}    id    code    name
 
 3. Shared architecture
 ----------------------
-- tests/APi/test_product_offering.robot -> test case file
+- tests/APi/channel_based_product_filteration.robot -> test case file
 - testdata/api/product_offering.csv -> data input
 - resources/variables/api_variables.robot -> global variables
 - resources/keywords/api_keywords.robot -> API method keywords

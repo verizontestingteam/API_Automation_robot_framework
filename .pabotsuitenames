@@ -1,0 +1,7 @@
+datasources:25cd1dd793e045ad1290b5a259479d435c05777c
+commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c
+suitesfrom:no-suites-from-option
+file:2c71a9062716b55bf2a030a636a818f6260be423
+--suite APi.Channel Based Product Filteration
+--suite APi.Test Auth
+--suite APi.Test Compatibility Check
