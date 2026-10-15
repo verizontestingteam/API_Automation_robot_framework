@@ -50,7 +50,6 @@ Validate Channel Based Product Offering
     ...    related_party=${related_party}
     ...    code=${code}
     ...    category_name=${category_name}
-    ...    channel_name=${channel_name}
     ${bundle_channel_result}=    Validate Bundled Product Offering Channels
     ...    ${response}
     ...    ${channel_name}

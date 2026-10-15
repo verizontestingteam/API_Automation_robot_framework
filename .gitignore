@@ -16,3 +16,5 @@ __pycache__/
 
 # Local credentials
 .env
+.pabotsuitenames
+/execution_dashboard.html

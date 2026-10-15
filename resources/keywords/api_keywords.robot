@@ -10,14 +10,6 @@ Resource    ../auth/auth_keywords.robot
 
 *** Keywords ***
 
-Create API Session
-    Disable Proxy For API Requests
-
-    Create Session
-    ...    api
-    ...    ${BASE_URL}
-    ...    verify=True
-
 Get Product Offering
 
     [Arguments]    ${related_party}    ${depth}    ${code}    ${category_name}=${EMPTY}    ${request_fields}=${EMPTY}    ${channel_name}=${EMPTY}
@@ -25,7 +17,6 @@ Get Product Offering
     Disable Proxy For API Requests
 
     ${token}=    Get Cached Access Token
-    ${authorization}=    Set Variable    Bearer ${token}
 
     &{headers}=    Create Dictionary
     ...    Cache-Control=no-store
@@ -37,20 +28,17 @@ Get Product Offering
     ...    depth=${depth}
     ...    code=${code}
 
-    Run Keyword If    '${category_name}' != ''
-    ...    Set To Dictionary
-    ...    ${params}
-    ...    category.name=${category_name}
+    IF    '${category_name}' != ''
+        Set To Dictionary    ${params}    category.name=${category_name}
+    END
 
-    Run Keyword If    '${request_fields}' != ''
-    ...    Set To Dictionary
-    ...    ${params}
-    ...    fields=${request_fields}
+    IF    '${request_fields}' != ''
+        Set To Dictionary    ${params}    fields=${request_fields}
+    END
 
-    Run Keyword If    '${channel_name}' != ''
-    ...    Set To Dictionary
-    ...    ${params}
-    ...    channel.name=${channel_name}
+    IF    '${channel_name}' != ''
+        Set To Dictionary    ${params}    channel.name=${channel_name}
+    END
 
     Create Session
     ...    api
@@ -66,23 +54,12 @@ Get Product Offering
 
     RETURN    ${response}
 
-Get Todo
-    Create API Session
-
-    ${response}=    GET On Session
-    ...    api
-    ...    ${TODO_ENDPOINT}
-    ...    expected_status=200
-
-    RETURN    ${response}
-
 Compatibility Check
     [Arguments]    ${correlation_group}    ${skus}    ${channel_name}    ${brand}
 
     Disable Proxy For API Requests
 
     ${token}=    Get Cached Access Token
-    ${authorization}=    Set Variable    Bearer ${token}
 
     &{headers}=    Create Dictionary
     ...    Content-Type=${JSON_CONTENT_TYPE}
@@ -90,7 +67,9 @@ Compatibility Check
 
 
     ${cookie}=    Get Environment Variable    COMPATIBILITY_COOKIE    ${EMPTY}
-    Run Keyword If    '${cookie}' != ''    Set To Dictionary    ${headers}    Cookie=${cookie}
+    IF    '${cookie}' != ''
+        Set To Dictionary    ${headers}    Cookie=${cookie}
+    END
 
     &{channel}=    Create Dictionary    name=${channel_name}
     &{cart_item}=    Create Dictionary

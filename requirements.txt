@@ -7,61 +7,61 @@
 # -------------------------
 # Robot Framework
 # -------------------------
-robotframework
-robotframework-browser
-robotframework-seleniumlibrary
-robotframework-requests
-robotframework-jsonlibrary
-robotframework-datadriver
-robotframework-faker
-robotframework-pabot
-allure-robotframework
-python-docx
+robotframework==7.4.2
+robotframework-browser==20.4.0
+robotframework-seleniumlibrary==6.9.0
+robotframework-requests==0.9.7
+robotframework-jsonlibrary==0.5
+robotframework-datadriver==1.11.2
+robotframework-faker==6.0.0
+robotframework-pabot==5.2.2
+allure-robotframework==2.16.0
+python-docx==1.2.0
 
 # -------------------------
 # Browser Automation
 # -------------------------
-playwright
-selenium
+playwright==1.62.0
+selenium==4.48.0
 
 # -------------------------
 # API Automation
 # -------------------------
-requests
-httpx
-jsonschema
-jsonpath-ng
-python-dateutil
+requests==2.34.2
+httpx==0.28.1
+jsonschema==4.26.0
+jsonpath-ng==1.8.0
+python-dateutil==2.9.0.post0
 
 # -------------------------
 # Configuration / Test Data
 # -------------------------
-PyYAML
-python-dotenv
-openpyxl
-pandas
-Faker
+PyYAML==6.0.3
+python-dotenv==1.2.3
+openpyxl==3.1.5
+pandas==3.0.5
+Faker==40.37.0
 
 # -------------------------
 # Database Validation
 # -------------------------
-pymongo
-oracledb
+pymongo==4.17.0
+oracledb==4.0.2
 
 # -------------------------
 # AI Integration
 # -------------------------
-openai
+openai==3.6.0
 
 # -------------------------
 # Logging / Utilities
 # -------------------------
-colorlog
-tenacity
+colorlog==6.12.0
+tenacity==9.1.4
 
 # -------------------------
 # Code Quality
 # -------------------------
-pytest
-black
-ruff
+pytest==9.1.1
+black==26.5.1
+ruff==0.16.5

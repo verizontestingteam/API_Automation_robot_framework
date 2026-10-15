@@ -432,7 +432,7 @@ def test_validates_bundle_items_in_items_response():
 def test_product_offering_response_with_message_and_no_items_does_not_crash():
     response = FakeResponse({"message": "No product offerings found"})
 
-    validate_product_offering_response(response, channel_name="WEB")
+    validate_product_offering_response(response)
 
 
 def test_channel_validation_matches_channel_names_case_insensitively():

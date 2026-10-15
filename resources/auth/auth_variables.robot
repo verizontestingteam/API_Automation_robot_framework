@@ -16,6 +16,3 @@ ${PASSWORD}            %{API_PASSWORD=}
 # OAuth Configuration
 ${GRANT_TYPE}          password
 ${SCOPE}               openid
-
-# Cookie
-${IAM_COOKIE}          YOUR_COOKIE_VALUE

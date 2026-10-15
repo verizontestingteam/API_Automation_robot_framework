@@ -19,7 +19,7 @@ Compatibility Check ${correlation_group}    Default    Default    Default    Def
 Verify Compatibility Check
     [Arguments]    ${correlation_group}    ${skus}    ${channel_name}    ${brand}
 
-    @{sku_list}=    Evaluate    [item.strip() for item in '${skus}'.split(',')]
+    @{sku_list}=    Evaluate    [item.strip() for item in $skus.split(',')]
 
     ${compatibility}=    Set Variable    ${False}
 

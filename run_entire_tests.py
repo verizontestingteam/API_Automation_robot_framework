@@ -38,14 +38,14 @@ def safe_name(value):
 
 def get_suite_name(output_file):
     root = ET.parse(output_file).getroot()
-    test = root.find(".//test")
+    suite = root.find(".//test/..")
 
-    if test is None:
+    if suite is None:
         raise RuntimeError(
             f"No test case found in {output_file}"
         )
 
-    return test.attrib.get(
+    return suite.attrib.get(
         "name",
         output_file.parent.name
     )

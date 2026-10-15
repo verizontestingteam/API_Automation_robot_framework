@@ -1,53 +1,47 @@
-<!-- ----------------------To activate Vurital environment----------------------------- -->
-.venv\Scripts\activate
+# API Automation – Robot Framework
 
-
-<!-- --------------------------------------------------- -->
-<!-- basic configuration -->
-API-Automation-Robot-Framework/
-│
-├── tests/
-│   └── api/
-│       ├── test_auth.robot              → Token API test
-│       └── channel_based_product_filteration.robot  → Channel-based Product Offering API test
-│
-├── resources/
-│   ├── auth/
-│   │   ├── auth_variables.robot         → Token URL + credentials
-│   │   └── auth_keywords.robot          → Function/keyword to generate token
-│   │
-│   ├── keywords/
-│   │   └── api_keywords.robot           → Product API reusable keywords
-│   │
-│   └── variables/
-│       └── api_variables.robot           → Product API URL + parameters
-│
-├── testdata/
-│   └── api/                             → Request/test data
-│
-├── reports/                             → Robot execution reports
-│
-└── requirements.txt                     → All Python packages
-
-<!-- Pabot -->
-Pabot is a tool that runs your Robot Framework tests in parallel instead of one by one.
-
-To run all API tests in parallel and classify each test result:
+## Setup
 
 ```powershell
-.\.venv\Scripts\python.exe run_parallel_tests.py
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env
 ```
 
-Passed tests are written to `results\passed\<test name>`. Failed tests are
-written only to `results\failed\<test name>` and do not update the existing
-top-level result files.# API_Automation_robot_framework
+Fill in `.env` with `CLIENT_ID`, `CLIENT_SECRET`, `API_USERNAME`, `API_PASSWORD`
+and `COMPATIBILITY_COOKIE`. `.env` is ignored by Git — never commit it.
 
-The same run also generates an additional dashboard at
-`reports\parallel_<run-id>\execution_dashboard.html`. Open that file in a
-browser to view the dynamic execution summary; Robot Framework's standard
-`output.xml`, `log.html`, and `report.html` files are still generated as before.# API_Automation_robot_framework
-# API_Automation_robot_framework
-# API_Automation_robot_framework
+## Project structure
+
+```text
+tests/API/                     Robot test suites (product offering, compatibility, auth)
+tests/python/                  Pytest tests for the Python validators
+resources/auth/                Token keywords and IAM settings
+resources/keywords/            Shared API keywords
+resources/variables/           API URLs and endpoints
+python/                        Validators and report generators
+testdata/api/                  CSV test data (one row = one test)
+run_entire_tests.py            Run all suites in parallel (Pabot)
+Single_Test_case.py            Run the product offering suite only
+```
+
+## Run tests
+
+```powershell
+.\.venv\Scripts\python.exe run_entire_tests.py   # all suites in parallel
+.\.venv\Scripts\python.exe Single_Test_case.py   # product offering suite only
+```
+
+Use these scripts rather than calling `robot` directly — they load `.env`.
+`run_entire_tests.py` writes reports to `reports\parallel_<run-id>\`
+(`report.html`, `log.html`, `Test_report.html` dashboard, Word report, Allure
+data) and a copy per suite to `results\<suite name>\`.
+
+## Add a test case
+
+Add a row to the CSV in `testdata\api\`. The first column is the test name;
+each row runs as its own test (DataDriver).
 
 ## Generate a DOCX test report
 
@@ -107,8 +101,8 @@ Rebot HTML reports    Custom Python dashboard
                       execution_dashboard.html
 ```
 
-`run_parallel_tests.py` runs suites in parallel with Pabot, classifies
-individual suite results into passed and failed folders, and preserves Robot's
+`run_entire_tests.py` runs suites in parallel with Pabot, copies each suite's
+results into `results\<suite name>`, and preserves Robot's
 standard `output.xml`, `log.html`, and `report.html` generation. The custom
 dashboard is an additional report generated from Robot's XML results; it does
 not replace Robot Framework's reporting.
@@ -141,7 +135,7 @@ cover API scenarios.
 | `resources\variables\` | Shared API endpoints and test configuration |
 | `python\` | Python validation, CSV, and report-generation helpers |
 | `testdata\api\` | CSV datasets used by API tests |
-| `run_parallel_tests.py` | Pabot orchestration and per-suite report handling |
+| `run_entire_tests.py` | Pabot orchestration and per-suite report handling |
 | `results\` | Per-suite reports grouped by pass/fail result |
 | `reports\` | Parallel run artifacts and consolidated execution reports |
 

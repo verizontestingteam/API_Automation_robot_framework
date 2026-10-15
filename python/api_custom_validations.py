@@ -87,7 +87,7 @@ def _field_exists_in_payload(payload, field_name):
 
 
 def validate_product_offering_response(
-    response, related_party=None, code=None, depth=None, category_name=None, channel_name=None
+    response, related_party=None, code=None, depth=None, category_name=None
 ):
     validate_response_status(response, 200)
     validate_response_not_empty(response)
