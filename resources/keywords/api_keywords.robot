@@ -24,7 +24,7 @@ Get Product Offering
 
     Disable Proxy For API Requests
 
-    ${token}=    Get Access Token
+    ${token}=    Get Cached Access Token
     ${authorization}=    Set Variable    Bearer ${token}
 
     &{headers}=    Create Dictionary
@@ -81,7 +81,7 @@ Compatibility Check
 
     Disable Proxy For API Requests
 
-    ${token}=    Get Access Token
+    ${token}=    Get Cached Access Token
     ${authorization}=    Set Variable    Bearer ${token}
 
     &{headers}=    Create Dictionary

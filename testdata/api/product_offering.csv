@@ -1,2 +1,2 @@
-*** Test Cases ***,${relatedParty},${depth},${code},${category.name},${channel.name}
+*** Test Cases ***,${related_party},${depth},${code},${category_name},${channel_name}
 Get Product Offering 4,TOTAL_WIRELESS,4,GPAPI15CN,Phones,AURA-CARE

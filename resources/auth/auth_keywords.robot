@@ -51,3 +51,12 @@ Get Access Token
     ${token}=    Set Variable    ${body}[access_token]
     Should Not Be Empty    ${token}
     RETURN    ${token}
+
+
+Get Cached Access Token
+    ${token}=    Get Variable Value    ${ACCESS_TOKEN}    ${EMPTY}
+    IF    '${token}' == ''
+        ${token}=    Get Access Token
+        Set Suite Variable    ${ACCESS_TOKEN}    ${token}
+    END
+    RETURN    ${token}

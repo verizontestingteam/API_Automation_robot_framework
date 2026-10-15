@@ -1,2 +1,2 @@
-*** Test Cases ***,${correlationGroup},${skus},${channel.name},${brand}
+*** Test Cases ***,${correlation_group},${skus},${channel_name},${brand}
 Compatibility Check 1,corrgrp1,"TWD3056,GPAPI16C128UMP",AURA-CARE,TOTAL_WIRELESS
