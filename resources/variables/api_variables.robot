@@ -13,7 +13,7 @@ ${AUTH_TOKEN}            sample_access_token
 
 # Compatibility Check API
 ${COMPATIBILITY_ENDPOINT}    /ve-api/api/3PP/v1/compatibility-check
-${COMPATIBILITY_CSV_FILE}    ${CURDIR}/../../testdata/api/11111111.csv
+${COMPATIBILITY_CSV_FILE}    ${CURDIR}/../../testdata/api/compatibility_check.csv
 ${JSON_CONTENT_TYPE}         application/json
 
 # ============================================================

@@ -1,8 +1,6 @@
-*** Keywords ***
+*** Settings ***
 
-Get Access Token
-    ${token}=    Set Variable    sample_access_token
-    RETURN    ${token}
+Resource    ../../resources/auth/auth_keywords.robot
 
 
 *** Test Cases ***

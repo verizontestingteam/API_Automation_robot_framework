@@ -15,6 +15,11 @@ Disable Proxy For API Requests
     Remove Environment Variable    ALL_PROXY
 
 Get Access Token
+    Should Not Be Empty    ${CLIENT_ID}        CLIENT_ID environment variable is not set. Add it to .env.
+    Should Not Be Empty    ${CLIENT_SECRET}    CLIENT_SECRET environment variable is not set. Add it to .env.
+    Should Not Be Empty    ${USERNAME}         API_USERNAME environment variable is not set. Add it to .env.
+    Should Not Be Empty    ${PASSWORD}         API_PASSWORD environment variable is not set. Add it to .env.
+
     Disable Proxy For API Requests
 
     &{headers}=    Create Dictionary

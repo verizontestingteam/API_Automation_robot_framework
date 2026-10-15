@@ -93,7 +93,7 @@ def build_docx(output_path):
     meta_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     meta_tbl.style = 'Table Grid'
     meta_data = [
-        [("Target Test Suite:", True), ("tests/APi/channel_based_product_filteration.robot", False)],
+        [("Target Test Suite:", True), ("tests/API/channel_based_product_filteration.robot", False)],
         [("Date of Assessment:", True), (f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", False)],
     ]
     for row_idx, row_content in enumerate(meta_data):

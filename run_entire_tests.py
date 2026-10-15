@@ -5,11 +5,16 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from python.generate_html_dashboard import generate_report
 
 
 ROOT = Path(__file__).resolve().parent
-TESTS = ROOT / "tests" / "APi"
+
+# Load credentials from the local .env file into the environment
+load_dotenv(ROOT / ".env")
+TESTS = ROOT / "tests" / "API"
 REPORTS = ROOT / "reports"
 RESULTS = ROOT / "results"
 VENV_SCRIPTS = ROOT / ".venv" / "Scripts"
@@ -155,6 +160,13 @@ def main():
     run_report_dir = (
         REPORTS / f"parallel_{run_id}"
     )
+    allure_results_dir = (
+        run_report_dir / "allure-results"
+    )
+    allure_listener = (
+        "allure_robotframework:"
+        f"{allure_results_dir.relative_to(ROOT)}"
+    )
 
     pabot_executable = (
         VENV_SCRIPTS / "pabot.exe"
@@ -180,6 +192,7 @@ def main():
     print("=" * 60)
     print(f"Test Directory : {TESTS}")
     print(f"Report Directory: {run_report_dir}")
+    print(f"Allure Results : {allure_results_dir}")
     print("Processes      : 4")
     print("=" * 60)
 
@@ -194,6 +207,8 @@ def main():
             "4",
             "--outputdir",
             str(run_report_dir),
+            "--listener",
+            allure_listener,
             str(TESTS),
         ],
         cwd=ROOT,
@@ -314,6 +329,11 @@ def main():
     print(
         f"Robot Log         : "
         f"{run_report_dir / 'log.html'}"
+    )
+
+    print(
+        f"Allure Results   : "
+        f"{allure_results_dir}"
     )
 
     print("=" * 60)

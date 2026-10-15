@@ -2,7 +2,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 ROOT = Path(__file__).resolve().parent
+
+# Load credentials from the local .env file into the environment
+load_dotenv(ROOT / ".env")
 VENV_PYTHON = ROOT / ".venv" / "Scripts" / "python.exe"
 VENV_ROBOT = ROOT / ".venv" / "Scripts" / "robot.exe"
 
@@ -10,11 +15,12 @@ VENV_ROBOT = ROOT / ".venv" / "Scripts" / "robot.exe"
 PYTHON_EXE = str(VENV_PYTHON if VENV_PYTHON.exists() else sys.executable)
 ROBOT_EXE = str(VENV_ROBOT if VENV_ROBOT.exists() else "robot")
 
-TEST_FILE = ROOT / "tests" / "APi" / "channel_based_product_filteration.robot"
+TEST_FILE = ROOT / "tests" / "API" / "channel_based_product_filteration.robot"
 REPORT_DIR = ROOT / "reports" / "channel_based_product_filteration_retry"
 OUTPUT_XML = REPORT_DIR / "output.xml"
 DOCX_REPORT = REPORT_DIR / "Product_Offering_Test_Report.docx"
 DOCX_SCRIPT = ROOT / "python" / "generate_docx_report.py"
+ALLURE_RESULTS_DIR = REPORT_DIR / "allure-results"
 
 
 def main():
@@ -29,6 +35,8 @@ def main():
     # 1. Execute Robot Framework (generates output.xml, log.html, report.html)
     robot_cmd = [
         ROBOT_EXE,
+        "--listener",
+        f"allure_robotframework:{ALLURE_RESULTS_DIR.relative_to(ROOT)}",
         "--outputdir", str(REPORT_DIR),
         str(TEST_FILE),
     ]
@@ -58,6 +66,7 @@ def main():
     print("Generated Reports:")
     print(f" - HTML Report: {REPORT_DIR / 'report.html'}")
     print(f" - HTML Log:    {REPORT_DIR / 'log.html'}")
+    print(f" - Allure Data: {ALLURE_RESULTS_DIR}")
     print(f" - Word Report: {DOCX_REPORT}")
     print("=" * 60)
 

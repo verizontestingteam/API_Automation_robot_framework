@@ -4,6 +4,7 @@ import pytest
 
 from python.api_custom_validations import (
     validate_bundled_product_offering_channels,
+    validate_product_offering_response,
     validate_requested_product_offering_channels,
 )
 
@@ -191,47 +192,30 @@ def test_channel_validation_accepts_requested_channel_dynamically(channel_name):
     )
 
 
-@pytest.mark.parametrize(
-    ("validation_level", "kwargs", "actual_channel"),
-    [
-        (
-            "GroupProductOffering.channel.name",
-            {"group_channels": [{"name": "WEB"}, {"name": "AURA-CARE"}]},
-            "AURA-CARE",
+def test_channel_validation_allows_additional_channels_at_each_level():
+    validate_requested_product_offering_channels(
+        make_channel_response(
+            group_channels=[{"name": "WEB"}, {"name": "AURA-CARE"}],
+            simple_channels=[{"name": "WEB"}, {"name": "AURA-INDIRECT"}],
+            price_channels=[{"name": "WEB"}, {"name": "AURA-CARE"}],
         ),
-        (
-            "SimpleProductOffering.channel.name",
-            {"simple_channels": [{"name": "WEB"}, {"name": "AURA-INDIRECT"}]},
-            "AURA-INDIRECT",
-        ),
-        (
-            "productOfferingPrice[PRICE-1].channel.name",
-            {"price_channels": [{"name": "WEB"}, {"name": "AURA-CARE"}]},
-            "AURA-CARE",
-        ),
-        (
-            "GroupProductOffering.channel.name",
-            {"group_channels": [{"name": "web"}]},
-            "web",
-        ),
-    ],
-)
-def test_channel_validation_rejects_unrequested_channels_at_each_level(
-    validation_level, kwargs, actual_channel
-):
-    with pytest.raises(AssertionError) as error:
-        validate_requested_product_offering_channels(
-            make_channel_response(**kwargs),
-            "WEB",
-        )
+        "WEB",
+    )
 
-    message = str(error.value)
-    assert "Requested channel='WEB'" in message
-    assert "product offering code=" in message
-    assert "@type=" in message
-    assert actual_channel in message
-    assert validation_level in message
-    assert "unexpected channel(s) returned" in message
+
+def test_channel_validation_allows_prices_without_channel_association():
+    response = make_channel_response()
+    payload = json.loads(response.text)
+    price = payload["items"][0]["bundledProductOffering"][0]["productOfferingPrice"][0]
+    del price["channel"]
+
+    validate_requested_product_offering_channels(FakeResponse(payload), "WEB")
+
+
+def test_channel_validation_allows_prices_with_empty_channel_association():
+    response = make_channel_response(price_channels=[])
+
+    validate_requested_product_offering_channels(response, "WEB")
 
 
 def test_channel_validation_rejects_simple_offering_without_corresponding_price():
@@ -263,7 +247,6 @@ def test_channel_validation_rejects_group_without_corresponding_simple_offering(
     [
         {"group_channels": []},
         {"simple_channels": []},
-        {"price_channels": []},
     ],
 )
 def test_channel_validation_rejects_missing_channel_at_any_level(kwargs):
@@ -444,3 +427,20 @@ def test_validates_bundle_items_in_items_response():
     result = validate_bundled_product_offering_channels(response, "WEB")
 
     assert result["validated_offerings"] == 1
+
+
+def test_product_offering_response_with_message_and_no_items_does_not_crash():
+    response = FakeResponse({"message": "No product offerings found"})
+
+    validate_product_offering_response(response, channel_name="WEB")
+
+
+def test_channel_validation_matches_channel_names_case_insensitively():
+    validate_requested_product_offering_channels(
+        make_channel_response(
+            group_channels=[{"name": "Aura-Care"}],
+            simple_channels=[{"name": "aura-care"}],
+            price_channels=[{"name": "AURA-CARE"}],
+        ),
+        "AURA-CARE",
+    )

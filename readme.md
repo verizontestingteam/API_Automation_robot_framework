@@ -58,6 +58,25 @@ channel-based product-offering suite, convert its `output.xml` with:
 .\.venv\Scripts\python.exe python\generate_docx_report.py reports\channel_based_product_filteration_retry\output.xml reports\channel_based_product_filteration_retry\Product_Offering_Test_Report.docx
 ```
 
+## Generate an Allure report
+
+The Robot Framework Allure adapter is included in `requirements.txt`. The
+single-suite and parallel runners write Allure result data beside their Robot
+reports. Install the Allure command-line tool separately
+([Windows installation instructions](https://allurereport.org/docs/install-for-windows/)),
+then generate and open the HTML report for a run:
+
+```powershell
+allure generate reports\parallel_<run-id>\allure-results --clean --output reports\parallel_<run-id>\allure-report
+allure open reports\parallel_<run-id>\allure-report
+```
+
+Replace `<run-id>` with the timestamped folder created by the parallel runner.
+For a single-suite run, use
+`reports\channel_based_product_filteration_retry\allure-results` instead.
+Allure result data is ignored by Git; the existing Robot Framework HTML reports
+continue to be generated as before.
+
 ## Technical Overview
 
 ### Architecture
