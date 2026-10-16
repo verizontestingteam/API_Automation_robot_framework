@@ -36,12 +36,19 @@ Validate Channel Based Product Offering
     Log    Status Code: ${response.status_code}
     Log    Response Body: ${body_text}
 
+    # Gate: stop here if the response is not usable
     Validate Response Status    ${response}    200
     Validate Response Not Empty    ${response}
-    Validate Response Time    ${response}    5000
     Validate Response Headers    ${response}    Content-Type    application/json
-    Validate Requested Product Offering Channels    ${response}    ${channel_name}
-    Validate Root Offering Channels    ${response}    ${channel_name}
+
+    Validate Product Offering Content    ${response}    ${related_party}    ${code}    ${category_name}    ${channel_name}
+
+Validate Product Offering Content
+    [Arguments]    ${response}    ${related_party}    ${code}    ${category_name}    ${channel_name}
+    [Tags]    robot:continue-on-failure
+    Validate Response Time    ${response}    5000
+    ${channel_summary}=    Validate Requested Product Offering Channels    ${response}    ${channel_name}
+    Log    ${channel_summary}
     Validate Product Offering Schema    ${response}
     Validate Product Offering Prices    ${response}    expected_channel=${channel_name}
     Validate Product Offering Validity    ${response}
@@ -50,7 +57,3 @@ Validate Channel Based Product Offering
     ...    related_party=${related_party}
     ...    code=${code}
     ...    category_name=${category_name}
-    ${bundle_channel_result}=    Validate Bundled Product Offering Channels
-    ...    ${response}
-    ...    ${channel_name}
-    Log    ${bundle_channel_result}[message]

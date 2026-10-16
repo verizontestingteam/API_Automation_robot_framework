@@ -186,33 +186,6 @@ def _get_product_offerings(payload):
     raise AssertionError(f"Unexpected response format for product offering: {payload}")
 
 
-def validate_root_offering_channels(response, requested_channel):
-    validate_response_status(response, 200)
-    if not requested_channel or not str(requested_channel).strip():
-        raise AssertionError("Requested channel must not be empty.")
-
-    offerings = _get_product_offerings(_get_json_payload(response))
-    if not offerings:
-        raise AssertionError("No product offerings found to validate root channels.")
-    expected = str(requested_channel).strip().casefold()
-    failures = []
-    for index, offering in enumerate(offerings):
-        if not isinstance(offering, dict):
-            failures.append(f"Root item {index} is not an object.")
-            continue
-        channels = offering.get("channel")
-        names = {
-            channel.get("name").strip().casefold()
-            for channel in channels or []
-            if isinstance(channel, dict) and isinstance(channel.get("name"), str)
-        } if isinstance(channels, list) else set()
-        if expected not in names:
-            code = offering.get("code", offering.get("id", index))
-            failures.append(f"Root offering code={code!r} is missing channel '{requested_channel}'.")
-    if failures:
-        raise AssertionError("\n".join(failures))
-
-
 def validate_product_offering_schema(response):
     for index, offering in enumerate(_get_product_offerings(_get_json_payload(response))):
         if not isinstance(offering, dict):
@@ -406,7 +379,12 @@ def validate_requested_product_offering_channels(response, requested_channel):
         raise AssertionError("Requested channel must not be empty.")
     requested = str(requested_channel).strip()
     offerings = _get_product_offerings(_get_json_payload(response))
+    if not offerings:
+        raise AssertionError(
+            f"No product offerings returned for requested channel '{requested}'."
+        )
     failures = []
+    simple_count = 0
     for index, offering in enumerate(offerings):
         if not isinstance(offering, dict):
             failures.append(
@@ -417,7 +395,7 @@ def validate_requested_product_offering_channels(response, requested_channel):
                 )
             )
         else:
-            _validate_strict_offering(
+            simple_count += _validate_strict_offering(
                 offering, requested, failures, expected_type="GroupProductOffering"
             )
     if failures:
@@ -425,105 +403,10 @@ def validate_requested_product_offering_channels(response, requested_channel):
             f"Strict channel filtering validation failed for requested channel "
             f"'{requested}':\n" + "\n".join(f"- {failure}" for failure in failures)
         )
-
-
-def _offering_label(offering, fallback):
-    if not isinstance(offering, dict):
-        return fallback
-    return f"offering ID={offering.get('id')!r}, name={offering.get('name')!r}"
-
-
-def _available_channels(offering):
-    channels = offering.get("channel")
-    if channels is None:
-        return [], "channel is missing or null"
-    if not isinstance(channels, list):
-        return [], f"channel must be a list, got {type(channels).__name__}"
-    names = []
-    invalid = []
-    for index, channel in enumerate(channels):
-        if not isinstance(channel, dict):
-            invalid.append(f"channel entry {index} is not an object")
-        elif not isinstance(channel.get("name"), str) or not channel["name"].strip():
-            invalid.append(f"channel entry {index} has no valid name")
-        else:
-            names.append(channel["name"].strip())
-    return names, "; ".join(invalid) or (None if names else "no channel names were returned")
-
-
-def validate_bundled_product_offering_channels(response, requested_channel):
-    validate_response_status(response, 200)
-    if not requested_channel or not str(requested_channel).strip():
-        raise AssertionError("Requested channel must not be empty.")
-    try:
-        payload = json.loads(getattr(response, "text", ""))
-    except (TypeError, json.JSONDecodeError) as error:
-        raise AssertionError(f"Product offering response is not valid JSON: {error}") from error
-
-    if isinstance(payload, list):
-        parents = payload
-    elif isinstance(payload, dict) and isinstance(payload.get("items"), list):
-        parents = payload["items"]
-    elif isinstance(payload, dict) and "bundledProductOffering" in payload:
-        parents = [payload]
-    else:
-        raise AssertionError("Product offering response must contain a bundledProductOffering list.")
-    if not parents:
-        raise AssertionError("Product offering response must contain a bundledProductOffering list.")
-
-    failures = []
-    validated = 0
-
-    def visit(items, parent_label):
-        nonlocal validated
-        for index, offering in enumerate(items):
-            validated += 1
-            label = _offering_label(offering, f"{parent_label} bundled item {index}")
-            if not isinstance(offering, dict):
-                failures.append(
-                    f"Requested channel '{requested_channel}', {label}, available channels: <invalid offering object>."
-                )
-                continue
-            channels, issue = _available_channels(offering)
-            if issue or str(requested_channel).strip().casefold() not in {
-                name.casefold() for name in channels
-            }:
-                available = ", ".join(channels) or "<none>"
-                if issue:
-                    available += f" ({issue})"
-                failures.append(
-                    f"Requested channel '{requested_channel}', {label}, available channels: [{available}]."
-                )
-            nested = offering.get("bundledProductOffering")
-            if nested is not None:
-                if not isinstance(nested, list):
-                    failures.append(f"{label}: nested bundledProductOffering must be a list.")
-                else:
-                    visit(nested, label)
-
-    for index, parent in enumerate(parents):
-        if not isinstance(parent, dict):
-            failures.append(f"response item {index} is not an object.")
-            continue
-        if "bundledProductOffering" not in parent or not isinstance(parent["bundledProductOffering"], list):
-            failures.append(
-                f"{_offering_label(parent, f'response item {index}')}: "
-                "bundledProductOffering is missing or is not a list."
-            )
-            continue
-        visit(parent["bundledProductOffering"], _offering_label(parent, f"response item {index}"))
-    if failures:
-        raise AssertionError(
-            f"Bundled product offering channel validation failed for "
-            f"'{requested_channel}'. Invalid offering(s):\n"
-            + "\n".join(f"- {failure}" for failure in failures)
-        )
-    return {
-        "success": True,
-        "requested_channel": str(requested_channel),
-        "validated_offerings": validated,
-        "message": f"Validated {validated} bundled product offering(s) for channel '{requested_channel}'.",
-    }
+    return (
+        f"Validated {len(offerings)} group offering(s) and {simple_count} "
+        f"simple offering(s) for channel '{requested}'."
+    )
 
 
 def validate_compatibility_check_response(response, correlation_group=None, skus=None):

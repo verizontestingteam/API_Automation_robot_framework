@@ -3,7 +3,6 @@ import json
 import pytest
 
 from python.api_custom_validations import (
-    validate_bundled_product_offering_channels,
     validate_product_offering_response,
     validate_requested_product_offering_channels,
 )
@@ -13,130 +12,6 @@ class FakeResponse:
     def __init__(self, payload, status_code=200):
         self.status_code = status_code
         self.text = payload if isinstance(payload, str) else json.dumps(payload)
-
-
-def make_offering(offering_id, name, channels):
-    return {"id": offering_id, "name": name, "channel": channels}
-
-
-def make_response(bundled_offerings):
-    return FakeResponse({"bundledProductOffering": bundled_offerings})
-
-
-@pytest.mark.parametrize("channel_name", ["WEB", "AURA-CARE", "AURA-INDIRECT"])
-def test_accepts_requested_channel_dynamically(channel_name):
-    response = make_response(
-        [make_offering("id-1", "Phone", [{"name": channel_name}])]
-    )
-
-    result = validate_bundled_product_offering_channels(response, channel_name)
-
-    assert result == {
-        "success": True,
-        "requested_channel": channel_name,
-        "validated_offerings": 1,
-        "message": f"Validated 1 bundled product offering(s) for channel '{channel_name}'.",
-    }
-
-
-def test_accepts_offering_with_multiple_channels():
-    response = make_response(
-        [
-            make_offering(
-                "id-1",
-                "Phone",
-                [{"name": "AURA-CARE"}, {"name": "WEB"}, {"name": "AURA-INDIRECT"}],
-            )
-        ]
-    )
-
-    result = validate_bundled_product_offering_channels(response, "WEB")
-
-    assert result["validated_offerings"] == 1
-
-
-def test_rejects_offering_with_only_a_different_channel_and_reports_details():
-    response = make_response(
-        [make_offering("id-1", "Phone", [{"name": "AURA-INDIRECT"}])]
-    )
-
-    with pytest.raises(AssertionError) as error:
-        validate_bundled_product_offering_channels(response, "WEB")
-
-    message = str(error.value)
-    assert "Requested channel 'WEB'" in message
-    assert "id-1" in message
-    assert "Phone" in message
-    assert "AURA-INDIRECT" in message
-
-
-@pytest.mark.parametrize(
-    "channel_value",
-    [
-        pytest.param(None, id="null-channel"),
-        pytest.param("WEB", id="non-list-channel"),
-        pytest.param([None], id="invalid-channel-entry"),
-        pytest.param([{"name": None}], id="missing-channel-name"),
-        pytest.param([], id="empty-channel-list"),
-    ],
-)
-def test_reports_missing_null_or_invalid_channel(channel_value):
-    response = make_response([make_offering("id-1", "Phone", channel_value)])
-
-    with pytest.raises(AssertionError, match="id-1"):
-        validate_bundled_product_offering_channels(response, "WEB")
-
-
-def test_collects_all_invalid_bundled_offerings():
-    response = make_response(
-        [
-            make_offering("id-1", "Phone one", [{"name": "AURA-CARE"}]),
-            make_offering("id-2", "Phone two", [{"name": "AURA-INDIRECT"}]),
-        ]
-    )
-
-    with pytest.raises(AssertionError) as error:
-        validate_bundled_product_offering_channels(response, "WEB")
-
-    message = str(error.value)
-    assert "id-1" in message
-    assert "Phone one" in message
-    assert "AURA-CARE" in message
-    assert "id-2" in message
-    assert "Phone two" in message
-    assert "AURA-INDIRECT" in message
-
-
-def test_empty_bundled_offering_list_is_valid_with_zero_count():
-    result = validate_bundled_product_offering_channels(make_response([]), "WEB")
-
-    assert result["success"] is True
-    assert result["validated_offerings"] == 0
-
-
-@pytest.mark.parametrize("payload", [{}, {"bundledProductOffering": None}, {"bundledProductOffering": {}}])
-def test_rejects_missing_or_non_list_bundled_offerings(payload):
-    with pytest.raises(AssertionError, match="bundledProductOffering"):
-        validate_bundled_product_offering_channels(FakeResponse(payload), "WEB")
-
-
-@pytest.mark.parametrize("payload", [[], {"items": []}])
-def test_rejects_response_without_any_bundled_offering_array(payload):
-    with pytest.raises(AssertionError, match="bundledProductOffering"):
-        validate_bundled_product_offering_channels(FakeResponse(payload), "WEB")
-
-
-def test_rejects_invalid_json():
-    with pytest.raises(AssertionError, match="not valid JSON"):
-        validate_bundled_product_offering_channels(FakeResponse("{not-json"), "WEB")
-
-
-def test_reuses_response_status_validation():
-    with pytest.raises(AssertionError, match="Expected HTTP status 200"):
-        validate_bundled_product_offering_channels(
-            FakeResponse({"bundledProductOffering": []}, status_code=401),
-            "WEB",
-        )
 
 
 def make_channel_response(
@@ -410,25 +285,6 @@ def test_channel_validation_rejects_group_with_wrong_type():
     assert "expected 'GroupProductOffering'" in message
 
 
-def test_validates_bundle_items_in_items_response():
-    response = FakeResponse(
-        {
-            "items": [
-                {
-                    "code": "BUNDLE-1",
-                    "bundledProductOffering": [
-                        make_offering("id-1", "Phone", [{"name": "WEB"}])
-                    ],
-                }
-            ]
-        }
-    )
-
-    result = validate_bundled_product_offering_channels(response, "WEB")
-
-    assert result["validated_offerings"] == 1
-
-
 def test_product_offering_response_with_message_and_no_items_does_not_crash():
     response = FakeResponse({"message": "No product offerings found"})
 
@@ -444,3 +300,14 @@ def test_channel_validation_matches_channel_names_case_insensitively():
         ),
         "AURA-CARE",
     )
+
+
+def test_channel_validation_rejects_empty_offering_list():
+    with pytest.raises(AssertionError, match="No product offerings returned"):
+        validate_requested_product_offering_channels(FakeResponse({"items": []}), "WEB")
+
+
+def test_channel_validation_returns_summary():
+    result = validate_requested_product_offering_channels(make_channel_response(), "WEB")
+
+    assert result == "Validated 1 group offering(s) and 1 simple offering(s) for channel 'WEB'."
