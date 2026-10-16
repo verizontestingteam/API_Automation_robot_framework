@@ -44,6 +44,14 @@ copy per suite to `reports\parallel_<run-id>\suites\<suite name>\`.
 Add a row to the CSV in `testdata\api\`. The first column is the test name;
 each row runs as its own test (DataDriver).
 
+In `product_offering.csv`, any extra `${...}` column is sent to the API as a
+query parameter. Use the API's parameter name as the header (for example
+`${limit}` or `${q.deviceType}`); leave a cell empty to not send it. Columns
+such as `[Tags]` are not sent, and a column that repeats a built-in parameter
+the test already sends (`relatedParty.name`, or `channel.name` /
+`category.name` / `fields` when set) fails the test.
+Test names (first column) must be unique.
+
 ## Generate a DOCX test report
 
 Robot Framework does not generate DOCX files by itself. After running the

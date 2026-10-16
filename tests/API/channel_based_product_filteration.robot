@@ -1,12 +1,18 @@
 *** Settings ***
 
-Library    DataDriver    file=${CURDIR}/../../testdata/api/product_offering.csv    dialect=excel    encoding=utf_8_sig
+Library    DataDriver    file=${PRODUCT_OFFERING_CSV}    dialect=excel    encoding=utf_8_sig
 Library    ../../python/api_custom_validations.py
+Library    ../../python/csv_query_params.py
 
 Resource    ../../resources/keywords/api_keywords.robot
 Resource    ../../resources/variables/api_variables.robot
 
 Test Template    Validate Channel Based Product Offering
+
+
+*** Variables ***
+
+${PRODUCT_OFFERING_CSV}    ${CURDIR}/../../testdata/api/product_offering.csv
 
 
 *** Test Cases ***
@@ -19,6 +25,11 @@ Product Offering ${code} ${channel_name}    Default    Default    Default    Def
 Validate Channel Based Product Offering
     [Arguments]    ${related_party}    ${depth}    ${code}    ${category_name}    ${channel_name}
 
+    # Any other CSV column is sent to the API as a query parameter
+    &{extra_params}=    Get Extra Query Params    ${PRODUCT_OFFERING_CSV}    ${TEST NAME}
+    ...    related_party=${related_party}    depth=${depth}    code=${code}
+    ...    category_name=${category_name}    channel_name=${channel_name}
+
     Log    Testing code=${code}, relatedParty=${related_party}, depth=${depth}, category=${category_name}, channel=${channel_name}
 
     ${response}=    api_keywords.Get Product Offering
@@ -28,6 +39,7 @@ Validate Channel Based Product Offering
     ...    ${category_name}
     ...    ${EMPTY}
     ...    ${channel_name}
+    ...    extra_params=${extra_params}
 
     ${body_text}=    Set Variable    ${response.text}
     ${body_length}=    Get Length    ${body_text}

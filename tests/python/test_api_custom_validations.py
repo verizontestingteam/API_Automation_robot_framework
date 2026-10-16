@@ -395,3 +395,31 @@ def test_response_accepts_related_party_list():
 def test_response_rejects_wrong_related_party():
     with pytest.raises(AssertionError, match="does not include 'OTHER_MVNO'"):
         validate_product_offering_response(make_bundle_response(), related_party="OTHER_MVNO")
+
+
+def test_faceted_response_is_validated_like_a_list():
+    payload = json.loads(make_bundle_response().text)
+    faceted = FakeResponse({"data": payload, "facets": [{"attribute": "Brand", "count": 1}]})
+
+    validate_product_offering_schema(faceted)
+    group = json.loads(make_channel_response().text)["items"]
+    assert validate_requested_product_offering_channels(
+        FakeResponse({"data": group, "facets": []}), "WEB"
+    ) == "Validated 1 group offering(s) and 1 simple offering(s) for channel 'WEB'."
+
+
+def test_schema_rejects_facets_that_are_not_a_list():
+    payload = json.loads(make_bundle_response().text)
+
+    with pytest.raises(AssertionError, match="'facets' must be a list, got dict"):
+        validate_product_offering_schema(FakeResponse({"data": payload, "facets": {"Brand": 1}}))
+
+
+def test_unknown_format_message_is_shortened():
+    response = FakeResponse({"unexpected": "x" * 5000})
+
+    with pytest.raises(AssertionError) as error:
+        validate_product_offering_schema(response)
+
+    assert len(str(error.value)) < 450
+    assert "characters)" in str(error.value)

@@ -180,16 +180,31 @@ def _get_product_offerings(payload):
     if isinstance(payload, list):
         return payload
     if isinstance(payload, dict):
-        items = payload.get("items")
-        if isinstance(items, list):
-            return items
+        # "items" = paged list, "data" = faceted response (includeFacets=true)
+        for key in ("items", "data"):
+            items = payload.get(key)
+            if isinstance(items, list):
+                return items
         if "code" in payload or "@type" in payload:
             return [payload]
-    raise AssertionError(f"Unexpected response format for product offering: {payload}")
+    raise AssertionError(
+        f"Unexpected response format for product offering: {_shorten(payload)}"
+    )
+
+
+def _shorten(value, limit=300):
+    """Keep failure messages readable instead of dumping the whole response."""
+    text = str(value)
+    return text if len(text) <= limit else f"{text[:limit]}... ({len(text)} characters)"
 
 
 def validate_product_offering_schema(response):
-    offerings = _get_product_offerings(_get_json_payload(response))
+    payload = _get_json_payload(response)
+    if isinstance(payload, dict) and "facets" in payload and not isinstance(payload["facets"], list):
+        raise AssertionError(
+            f"Faceted response 'facets' must be a list, got {type(payload['facets']).__name__}."
+        )
+    offerings = _get_product_offerings(payload)
     for index, offering in enumerate(offerings):
         if not isinstance(offering, dict):
             raise AssertionError(f"Product offering item {index} must be an object.")

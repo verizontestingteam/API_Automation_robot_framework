@@ -12,7 +12,7 @@ Resource    ../auth/auth_keywords.robot
 
 Get Product Offering
 
-    [Arguments]    ${related_party}    ${depth}    ${code}    ${category_name}=${EMPTY}    ${request_fields}=${EMPTY}    ${channel_name}=${EMPTY}
+    [Arguments]    ${related_party}    ${depth}    ${code}    ${category_name}=${EMPTY}    ${request_fields}=${EMPTY}    ${channel_name}=${EMPTY}    ${extra_params}=${None}
 
     Disable Proxy For API Requests
 
@@ -38,6 +38,12 @@ Get Product Offering
 
     IF    '${channel_name}' != ''
         Set To Dictionary    ${params}    channel.name=${channel_name}
+    END
+
+    IF    $extra_params
+        ${clashes}=    Evaluate    sorted(set($params) & set($extra_params))
+        Should Be Empty    ${clashes}    CSV columns ${clashes} clash with built-in query parameters.
+        Set To Dictionary    ${params}    &{extra_params}
     END
 
     Create Session

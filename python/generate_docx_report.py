@@ -1,3 +1,4 @@
+import json
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -72,6 +73,13 @@ def _check_descriptions(data, args):
 def _humanize(name):
     name = re.sub(r"^\$\{(.*)\}$", r"\1", str(name))
     return name.replace("_", " ").strip().capitalize()
+
+
+def _data_label(key):
+    """Report label for a test data key; API parameter names like q.deviceType stay as-is."""
+    if key in DATA_LABELS:
+        return DATA_LABELS[key]
+    return _humanize(key) if re.fullmatch(r"[a-z0-9_]+", key) else key
 
 
 def format_duration(value):
@@ -172,7 +180,8 @@ def _resolve(value, data):
 
 
 def _test_data(test):
-    """Input values of the data-driven template keyword (e.g. channel_name=WEB)."""
+    """Input values of the data-driven template keyword (e.g. channel_name=WEB),
+    plus any extra CSV query parameters logged by Get Extra Query Params."""
     first = test.find("./kw")
     data = {}
     if first is not None:
@@ -181,6 +190,14 @@ def _test_data(test):
             match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", text, re.S)
             if match:
                 data[match.group(1)] = match.group(2)
+    for message in test.iter("msg"):
+        text = message.text or ""
+        if text.startswith("Extra query parameters: "):
+            try:
+                data.update(json.loads(text.split(": ", 1)[1]))
+            except ValueError:
+                pass
+            break
     return data
 
 
@@ -320,7 +337,7 @@ def generate_report(output_xml, destination):
             document.add_paragraph().add_run("Test data").bold = True
             data_table = _table(document, ["Field", "Value"])
             for key, value in data.items():
-                _add_row(data_table, (DATA_LABELS.get(key, _humanize(key)), value))
+                _add_row(data_table, (_data_label(key), value))
 
         checks = _collect_checks(test, data)
         document.add_paragraph().add_run("Checks performed").bold = True
