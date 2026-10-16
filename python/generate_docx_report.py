@@ -5,7 +5,7 @@ from pathlib import Path
 
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Inches, RGBColor
 
 
 def format_duration(value):

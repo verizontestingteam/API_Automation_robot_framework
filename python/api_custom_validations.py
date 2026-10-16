@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 
 def validate_response_status(response, expected_status=200):
@@ -93,55 +94,56 @@ def validate_product_offering_response(
     validate_response_not_empty(response)
 
     payload = _get_json_payload(response)
-    if isinstance(payload, dict):
-        items = payload.get("items")
-        if items is None and payload.get("message"):
-            return
-        if items is not None and isinstance(items, list):
-            if len(items) == 0:
-                return
-            first_item = items[0]
-            if isinstance(first_item, dict):
-                if related_party and first_item.get("relatedParty") not in [related_party, None]:
-                    raise AssertionError(f"Unexpected relatedParty value: {first_item.get('relatedParty')}")
-                if code and first_item.get("code") and first_item.get("code") != code:
-                    raise AssertionError(f"Unexpected product code: {first_item.get('code')}")
-                if category_name and first_item.get("category"):
-                    category = first_item.get("category")
-                    if isinstance(category, list) and category and isinstance(category[0], dict):
-                        category_value = category[0].get("name")
-                    elif isinstance(category, dict):
-                        category_value = category.get("name")
-                    else:
-                        category_value = category
-                    if category_value and str(category_value).lower() != str(category_name).lower():
-                        raise AssertionError(
-                            f"Unexpected category name: {category_value}. Expected: {category_name}"
-                        )
-            return
-
-    if isinstance(payload, list):
-        if not payload:
-            return
-        first_item = payload[0]
-        if isinstance(first_item, dict):
-            if code and first_item.get("code") and first_item.get("code") != code:
-                raise AssertionError(f"Unexpected product code: {first_item.get('code')}")
-            if category_name and first_item.get("category"):
-                category = first_item.get("category")
-                if isinstance(category, list) and category and isinstance(category[0], dict):
-                    category_value = category[0].get("name")
-                elif isinstance(category, dict):
-                    category_value = category.get("name")
-                else:
-                    category_value = category
-                if category_value and str(category_value).lower() != str(category_name).lower():
-                    raise AssertionError(
-                        f"Unexpected category name: {category_value}. Expected: {category_name}"
-                    )
+    if isinstance(payload, dict) and payload.get("items") is None and payload.get("message"):
         return
 
-    raise AssertionError(f"Unexpected response format for product offering: {payload}")
+    for offering in _get_product_offerings(payload):
+        if not isinstance(offering, dict):
+            continue
+        label = offering.get("code", offering.get("id", "<unknown>"))
+        if related_party and offering.get("relatedParty") is not None:
+            if str(related_party).strip().casefold() not in _names(offering["relatedParty"]):
+                raise AssertionError(
+                    f"Product offering {label!r} relatedParty {offering['relatedParty']} "
+                    f"does not include {related_party!r}."
+                )
+        if code and offering.get("code") and offering["code"] != code:
+            raise AssertionError(f"Unexpected product code: {offering['code']}")
+        if category_name and offering.get("category"):
+            if str(category_name).strip().casefold() not in _names(offering["category"]):
+                raise AssertionError(
+                    f"Unexpected category for {label!r}: {offering['category']}. Expected: {category_name}"
+                )
+
+
+def _names(value):
+    """Return the casefolded names (or ids) from a str, dict or list of dicts."""
+    items = value if isinstance(value, list) else [value]
+    names = set()
+    for item in items:
+        if isinstance(item, dict):
+            for key in ("name", "id"):
+                if item.get(key):
+                    names.add(str(item[key]).strip().casefold())
+        elif item:
+            names.add(str(item).strip().casefold())
+    return names
+
+
+def _iter_offerings(offerings):
+    """Yield every offering, including bundled offerings at any depth."""
+    for offering in offerings:
+        if not isinstance(offering, dict):
+            continue
+        yield offering
+        bundled = offering.get("bundledProductOffering")
+        if isinstance(bundled, list):
+            yield from _iter_offerings(bundled)
+
+
+def _parse_datetime(value):
+    parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def _assert_channel_present(channels, expected_channel, context):
@@ -187,9 +189,11 @@ def _get_product_offerings(payload):
 
 
 def validate_product_offering_schema(response):
-    for index, offering in enumerate(_get_product_offerings(_get_json_payload(response))):
+    offerings = _get_product_offerings(_get_json_payload(response))
+    for index, offering in enumerate(offerings):
         if not isinstance(offering, dict):
             raise AssertionError(f"Product offering item {index} must be an object.")
+    for index, offering in enumerate(_iter_offerings(offerings)):
         missing = [
             field for field in ("id", "code", "name")
             if field not in offering or offering[field] is None
@@ -205,9 +209,8 @@ def validate_product_offering_schema(response):
 
 
 def validate_product_offering_prices(response, expected_channel=None):
-    for index, offering in enumerate(_get_product_offerings(_get_json_payload(response))):
-        if not isinstance(offering, dict):
-            continue
+    offerings = _get_product_offerings(_get_json_payload(response))
+    for index, offering in enumerate(_iter_offerings(offerings)):
         prices = offering.get("productOfferingPrice", [])
         if prices is None:
             continue
@@ -233,22 +236,31 @@ def validate_product_offering_prices(response, expected_channel=None):
 
 
 def validate_product_offering_validity(response):
-    from datetime import datetime
-
-    for index, offering in enumerate(_get_product_offerings(_get_json_payload(response))):
-        valid_for = offering.get("validFor") if isinstance(offering, dict) else None
+    now = datetime.now(timezone.utc)
+    offerings = _get_product_offerings(_get_json_payload(response))
+    for index, offering in enumerate(_iter_offerings(offerings)):
+        valid_for = offering.get("validFor")
         if not isinstance(valid_for, dict):
             continue
+        code = offering.get("code", f"item_{index}")
+        dates = {}
         for field in ("startDateTime", "endDateTime"):
             value = valid_for.get(field)
             if value:
                 try:
-                    datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+                    dates[field] = _parse_datetime(value)
                 except ValueError as error:
-                    code = offering.get("code", f"item_{index}")
                     raise AssertionError(
                         f"Product offering {code!r} has invalid validFor.{field}: {value!r}"
                     ) from error
+        start = dates.get("startDateTime")
+        end = dates.get("endDateTime")
+        if end and end < now:
+            raise AssertionError(f"Product offering {code!r} expired on {valid_for['endDateTime']}.")
+        if start and end and start > end:
+            raise AssertionError(
+                f"Product offering {code!r} validFor.startDateTime is after endDateTime."
+            )
 
 
 def _strict_channel_failure(requested, actual, code, offering_type, level, reason):

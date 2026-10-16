@@ -3,7 +3,10 @@ import json
 import pytest
 
 from python.api_custom_validations import (
+    validate_product_offering_prices,
     validate_product_offering_response,
+    validate_product_offering_schema,
+    validate_product_offering_validity,
     validate_requested_product_offering_channels,
 )
 
@@ -311,3 +314,84 @@ def test_channel_validation_returns_summary():
     result = validate_requested_product_offering_channels(make_channel_response(), "WEB")
 
     assert result == "Validated 1 group offering(s) and 1 simple offering(s) for channel 'WEB'."
+
+
+def make_bundle_response(child_overrides=None):
+    child = {
+        "@type": "SimpleProductOffering",
+        "id": "child-1",
+        "code": "SIMPLE-1",
+        "name": "Phone",
+        "lifecycleStatus": "Launched",
+        "validFor": {
+            "startDateTime": "2023-09-15T18:57:38.493Z",
+            "endDateTime": "2099-04-08T17:08:00.000Z",
+        },
+        "productOfferingPrice": [{"code": "PRICE-1", "price": {"value": 499.99, "unit": "USD"}}],
+    }
+    child.update(child_overrides or {})
+    return FakeResponse(
+        [
+            {
+                "@type": "GroupProductOffering",
+                "id": "group-1",
+                "code": "GROUP-1",
+                "name": "Phone bundle",
+                "lifecycleStatus": "Launched",
+                "relatedParty": [{"id": "TOTAL_WIRELESS", "name": "TOTAL_WIRELESS", "role": "mvno"}],
+                "category": [{"name": "Phones"}],
+                "validFor": {},
+                "bundledProductOffering": [child],
+            }
+        ]
+    )
+
+
+def test_schema_checks_bundled_offerings():
+    payload = json.loads(make_bundle_response().text)
+    del payload[0]["bundledProductOffering"][0]["id"]
+
+    with pytest.raises(AssertionError, match="'SIMPLE-1' is missing mandatory schema fields: \\['id'\\]"):
+        validate_product_offering_schema(FakeResponse(payload))
+
+
+def test_prices_reject_negative_bundled_price():
+    response = make_bundle_response(
+        {"productOfferingPrice": [{"code": "PRICE-1", "price": {"value": -5, "unit": "USD"}}]}
+    )
+
+    with pytest.raises(AssertionError, match="cannot be negative: -5"):
+        validate_product_offering_prices(response)
+
+
+def test_validity_rejects_expired_bundled_offering():
+    response = make_bundle_response(
+        {"validFor": {"startDateTime": "2019-01-01T00:00:00Z", "endDateTime": "2020-01-01T00:00:00Z"}}
+    )
+
+    with pytest.raises(AssertionError, match="'SIMPLE-1' expired on 2020-01-01T00:00:00Z"):
+        validate_product_offering_validity(response)
+
+
+def test_validity_rejects_start_after_end():
+    response = make_bundle_response(
+        {"validFor": {"startDateTime": "2099-06-01T00:00:00Z", "endDateTime": "2099-01-01T00:00:00Z"}}
+    )
+
+    with pytest.raises(AssertionError, match="startDateTime is after endDateTime"):
+        validate_product_offering_validity(response)
+
+
+def test_validity_accepts_current_offering():
+    validate_product_offering_validity(make_bundle_response())
+
+
+def test_response_accepts_related_party_list():
+    validate_product_offering_response(
+        make_bundle_response(), related_party="TOTAL_WIRELESS", code="GROUP-1", category_name="Phones"
+    )
+
+
+def test_response_rejects_wrong_related_party():
+    with pytest.raises(AssertionError, match="does not include 'OTHER_MVNO'"):
+        validate_product_offering_response(make_bundle_response(), related_party="OTHER_MVNO")
