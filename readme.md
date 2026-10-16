@@ -33,7 +33,8 @@ Single_Test_case.py            Run the product offering suite only
 .\.venv\Scripts\python.exe Single_Test_case.py   # product offering suite only
 ```
 
-Use these scripts rather than calling `robot` directly — they load `.env`.
+`.env` is loaded automatically, so suites can also be run directly with
+`robot` or from VS Code.
 `run_entire_tests.py` writes reports to `reports\parallel_<run-id>\`
 (`report.html`, `log.html`, `Test_report.html` dashboard, Word report, Allure
 data) and a copy per suite to `results\<suite name>\`.

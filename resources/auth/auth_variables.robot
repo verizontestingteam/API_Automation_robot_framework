@@ -1,18 +1,18 @@
+*** Settings ***
+
+# Credentials come from .env (or real environment variables)
+Variables    credentials.py
+
+
 *** Variables ***
 
 # IAM Configuration
 ${IAM_BASE_URL}        https://ttvz-sb-iam.tecnotree.com
 ${TOKEN_ENDPOINT}      /oauth2/token
 
-# OAuth Credentials
-# Values come from environment variables, loaded from the local .env file by the runner scripts.
-${CLIENT_ID}           %{CLIENT_ID=}
-${CLIENT_SECRET}       %{CLIENT_SECRET=}
-
-# User Credentials
-${USERNAME}            %{API_USERNAME=}
-${PASSWORD}            %{API_PASSWORD=}
-
 # OAuth Configuration
 ${GRANT_TYPE}          password
 ${SCOPE}               openid
+
+# Fetch a new token once the cached one is older than this (tokens usually last 1 hour)
+${TOKEN_MAX_AGE_SECONDS}    3000

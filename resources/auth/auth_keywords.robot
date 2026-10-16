@@ -55,8 +55,11 @@ Get Access Token
 
 Get Cached Access Token
     ${token}=    Get Variable Value    ${ACCESS_TOKEN}    ${EMPTY}
-    IF    '${token}' == ''
+    ${fetched_at}=    Get Variable Value    ${ACCESS_TOKEN_FETCHED_AT}    ${0}
+    ${now}=    Evaluate    time.time()    modules=time
+    IF    '${token}' == '' or ${now} - ${fetched_at} > ${TOKEN_MAX_AGE_SECONDS}
         ${token}=    Get Access Token
         Set Suite Variable    ${ACCESS_TOKEN}    ${token}
+        Set Suite Variable    ${ACCESS_TOKEN_FETCHED_AT}    ${now}
     END
     RETURN    ${token}
