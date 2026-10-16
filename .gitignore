@@ -11,8 +11,6 @@ __pycache__/
 /results/
 /tests/API/reports/
 /tests/API/results/
-**/allure-results/
-**/allure-report/
 
 # Local credentials
 .env

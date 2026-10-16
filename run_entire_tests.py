@@ -16,7 +16,6 @@ ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env")
 TESTS = ROOT / "tests" / "API"
 REPORTS = ROOT / "reports"
-RESULTS = ROOT / "results"
 VENV_SCRIPTS = ROOT / ".venv" / "Scripts"
 
 # Word report generator
@@ -158,14 +157,7 @@ def main():
     )
 
     run_report_dir = (
-        REPORTS / f"parallel_{run_id}"
-    )
-    allure_results_dir = (
-        run_report_dir / "allure-results"
-    )
-    allure_listener = (
-        "allure_robotframework:"
-        f"{allure_results_dir.relative_to(ROOT)}"
+        REPORTS / f"Test_Case_Report_{run_id}"
     )
 
     pabot_executable = (
@@ -192,13 +184,14 @@ def main():
     print("=" * 60)
     print(f"Test Directory : {TESTS}")
     print(f"Report Directory: {run_report_dir}")
-    print(f"Allure Results : {allure_results_dir}")
     print("Processes      : 4")
     print("=" * 60)
 
     # --------------------------------------------------
     # STEP 1: Execute tests using Pabot
     # --------------------------------------------------
+
+    REPORTS.mkdir(parents=True, exist_ok=True)
 
     pabot_result = subprocess.run(
         [
@@ -207,11 +200,10 @@ def main():
             "4",
             "--outputdir",
             str(run_report_dir),
-            "--listener",
-            allure_listener,
             str(TESTS),
         ],
-        cwd=ROOT,
+        # Run from reports/ so Pabot's .pabotsuitenames file is written there too
+        cwd=REPORTS,
         env=environment,
     )
 
@@ -231,7 +223,7 @@ def main():
         )
 
         destination = (
-            RESULTS /
+            run_report_dir / "suites" /
             safe_name(suite_name)
         )
 
@@ -332,8 +324,8 @@ def main():
     )
 
     print(
-        f"Allure Results   : "
-        f"{allure_results_dir}"
+        f"Suite Reports     : "
+        f"{run_report_dir / 'suites'}"
     )
 
     print("=" * 60)

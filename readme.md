@@ -36,8 +36,8 @@ Single_Test_case.py            Run the product offering suite only
 `.env` is loaded automatically, so suites can also be run directly with
 `robot` or from VS Code.
 `run_entire_tests.py` writes reports to `reports\parallel_<run-id>\`
-(`report.html`, `log.html`, `Test_report.html` dashboard, Word report, Allure
-data) and a copy per suite to `results\<suite name>\`.
+(`report.html`, `log.html`, `Test_report.html` dashboard and Word report) and a
+copy per suite to `reports\parallel_<run-id>\suites\<suite name>\`.
 
 ## Add a test case
 
@@ -52,25 +52,6 @@ channel-based product-offering suite, convert its `output.xml` with:
 ```powershell
 .\.venv\Scripts\python.exe python\generate_docx_report.py reports\channel_based_product_filteration_retry\output.xml reports\channel_based_product_filteration_retry\Product_Offering_Test_Report.docx
 ```
-
-## Generate an Allure report
-
-The Robot Framework Allure adapter is included in `requirements.txt`. The
-single-suite and parallel runners write Allure result data beside their Robot
-reports. Install the Allure command-line tool separately
-([Windows installation instructions](https://allurereport.org/docs/install-for-windows/)),
-then generate and open the HTML report for a run:
-
-```powershell
-allure generate reports\parallel_<run-id>\allure-results --clean --output reports\parallel_<run-id>\allure-report
-allure open reports\parallel_<run-id>\allure-report
-```
-
-Replace `<run-id>` with the timestamped folder created by the parallel runner.
-For a single-suite run, use
-`reports\channel_based_product_filteration_retry\allure-results` instead.
-Allure result data is ignored by Git; the existing Robot Framework HTML reports
-continue to be generated as before.
 
 ## Technical Overview
 
@@ -103,7 +84,7 @@ Rebot HTML reports    Custom Python dashboard
 ```
 
 `run_entire_tests.py` runs suites in parallel with Pabot, copies each suite's
-results into `results\<suite name>`, and preserves Robot's
+results into `suites\<suite name>` inside the run's report folder, and preserves Robot's
 standard `output.xml`, `log.html`, and `report.html` generation. The custom
 dashboard is an additional report generated from Robot's XML results; it does
 not replace Robot Framework's reporting.
@@ -137,8 +118,7 @@ cover API scenarios.
 | `python\` | Python validation, CSV, and report-generation helpers |
 | `testdata\api\` | CSV datasets used by API tests |
 | `run_entire_tests.py` | Pabot orchestration and per-suite report handling |
-| `results\` | Per-suite reports grouped by pass/fail result |
-| `reports\` | Parallel run artifacts and consolidated execution reports |
+| `reports\` | All run output: consolidated and per-suite reports, dashboard, Word report |
 
 ### Test and Report Data Flow
 

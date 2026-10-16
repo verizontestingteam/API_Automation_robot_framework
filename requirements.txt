@@ -15,7 +15,6 @@ robotframework-jsonlibrary==0.5
 robotframework-datadriver==1.11.2
 robotframework-faker==6.0.0
 robotframework-pabot==5.2.2
-allure-robotframework==2.16.0
 python-docx==1.2.0
 
 # -------------------------

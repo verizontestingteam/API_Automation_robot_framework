@@ -5,6 +5,7 @@ Library    Collections
 Library    OperatingSystem
 
 Resource    auth_variables.robot
+Library     ../../python/secret_masker.py
 
 
 *** Keywords ***

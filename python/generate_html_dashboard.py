@@ -35,10 +35,10 @@ def calculate_summary(results):
     }
 
 
-def calculate_pipeline_summary(results):
+def calculate_pipeline_summary(results, key="pipeline"):
     pipelines = defaultdict(list)
     for result in results:
-        pipelines[result["pipeline"] or UNKNOWN_PIPELINE].append(result)
+        pipelines[result[key] or UNKNOWN_PIPELINE].append(result)
 
     summaries = []
     for pipeline, pipeline_results in sorted(pipelines.items(), key=lambda item: item[0].casefold()):
@@ -126,6 +126,26 @@ def _failure_reason(test, status):
     return MISSING
 
 
+def _elapsed_seconds(status_node):
+    """Read a status element's duration (Robot Framework 7 `elapsed`, or older start/end times)."""
+    if status_node is None:
+        return None
+    elapsed = status_node.get("elapsed")
+    if elapsed:
+        try:
+            return float(elapsed)
+        except ValueError:
+            return None
+    start, end = status_node.get("starttime"), status_node.get("endtime")
+    if start and end and "N/A" not in (start, end):
+        try:
+            time_format = "%Y%m%d %H:%M:%S.%f"
+            return (datetime.strptime(end, time_format) - datetime.strptime(start, time_format)).total_seconds()
+        except ValueError:
+            return None
+    return None
+
+
 def load_results(output_xml):
     root = ET.parse(output_xml).getroot()
     results = []
@@ -153,6 +173,8 @@ def load_results(output_xml):
                     "test_suite": _first_value(
                         test_metadata, ("test_suite", "testsuite"), suite_label
                     ),
+                    "suite_name": suite_path[-1] if suite_path else MISSING,
+                    "duration": _elapsed_seconds(status_node),
                     "action_type": _first_value(test_metadata, ("action_type",), MISSING),
                     "status": status,
                     "pi_status": (
@@ -186,7 +208,7 @@ def _format_percentage(value):
 
 
 def _status_class(status):
-    if status in {"PASS", "COMPLETED"}:
+    if status in {"PASS", "PASSED", "COMPLETED"}:
         return "pass"
     if status in {"FAIL", "FAILED"}:
         return "fail"
@@ -230,37 +252,65 @@ def _render_pipeline_cards(pipeline_summaries):
     return "\n".join(cards)
 
 
-def _render_completed_rows(results):
-    rows = []
-    for index, result in enumerate(results, start=1):
-        rows.append(
-            f"""<tr>
-              <td>{index}</td><td>{_escape(result["pi_id"])}</td>
-              <td>{_escape(result["pipeline"])}</td>
-              <td>{_escape(result["test_suite"])}<small class="test-name">Test: {_escape(result["test_name"])}</small></td>
-              <td>{_escape(result["action_type"])}</td>
-              <td>{_render_badge("COMPLETED")}</td>
-            </tr>"""
-        )
-    return "\n".join(rows) or '<tr><td colspan="6" class="empty-state">No completed tests.</td></tr>'
+def _format_duration(seconds):
+    if seconds is None:
+        return MISSING
+    if seconds < 60:
+        return f"{seconds:.1f} s"
+    minutes, remainder = divmod(int(round(seconds)), 60)
+    return f"{minutes} m {remainder:02d} s"
 
 
-def _render_attention_rows(results):
-    rows = []
-    for index, result in enumerate(results, start=1):
-        status = result["pi_status"]
-        rows.append(
-            f"""<tr>
-              <td>{index}</td><td>{_escape(result["pi_id"])}</td>
-              <td>{_escape(result["pipeline"])}</td>
-              <td>{_escape(result["test_suite"])}<small class="test-name">Test: {_escape(result["test_name"])}</small></td>
-              <td>{_escape(result["action_type"])}</td>
-              <td>{_render_badge(status)}</td>
-              <td class="reason">{_escape(result["failure_reason"])}</td>
-              <td>{_render_badge(result["rca"], "rca")}</td>
-            </tr>"""
-        )
-    return "\n".join(rows) or '<tr><td colspan="8" class="empty-state">No tests require attention.</td></tr>'
+# Columns that only appear when at least one test provides a value for them
+OPTIONAL_COLUMNS = {
+    "pi_id": MISSING,
+    "pipeline": UNKNOWN_PIPELINE,
+    "action_type": MISSING,
+    "rca": NOT_CLASSIFIED,
+}
+
+
+def _visible_optional_columns(results):
+    return {
+        key for key, default in OPTIONAL_COLUMNS.items()
+        if any(result[key] != default for result in results)
+    }
+
+
+def _render_table(results, visible, status_of, show_failure, empty_message):
+    columns = [("#", lambda index, result: str(index))]
+    if "pi_id" in visible:
+        columns.append(("PI ID", lambda index, result: _escape(result["pi_id"])))
+    if "pipeline" in visible:
+        columns.append(("Pipeline", lambda index, result: _escape(result["pipeline"])))
+    columns.append((
+        "Test Suite",
+        lambda index, result: (
+            f'{_escape(result["test_suite"])}'
+            f'<small class="test-name">Test: {_escape(result["test_name"])}</small>'
+        ),
+    ))
+    if "action_type" in visible:
+        columns.append(("Action Type", lambda index, result: _escape(result["action_type"])))
+    columns.append(("Duration", lambda index, result: _escape(_format_duration(result["duration"]))))
+    columns.append(("Status", lambda index, result: _render_badge(status_of(result))))
+    if show_failure:
+        columns.append((
+            "Failure Reason",
+            lambda index, result: f'<span class="reason">{_escape(result["failure_reason"])}</span>',
+        ))
+        if "rca" in visible:
+            columns.append(("RCA", lambda index, result: _render_badge(result["rca"], "rca")))
+
+    head = "".join(f"<th>{_escape(name)}</th>" for name, _ in columns)
+    rows = [
+        "<tr>" + "".join(f"<td>{render(index, result)}</td>" for _, render in columns) + "</tr>"
+        for index, result in enumerate(results, start=1)
+    ]
+    body = "\n".join(rows) or (
+        f'<tr><td colspan="{len(columns)}" class="empty-state">{_escape(empty_message)}</td></tr>'
+    )
+    return f"<thead><tr>{head}</tr></thead>\n        <tbody>{body}</tbody>"
 
 
 def _execution_metadata(root, output_xml):
@@ -313,10 +363,9 @@ def _execution_metadata(root, output_xml):
     generator = root.get("generator", "")
     version_match = re.search(r"(?:Rebot|Robot Framework)\s+([^\s(]+)", generator, re.IGNORECASE)
     version = version_match.group(1) if version_match else MISSING
-    requirement_file = PROJECT_ROOT / "requirements.txt"
-    browser_enabled = requirement_file.exists() and any(
-        line.strip().casefold().startswith(("robotframework-browser", "playwright"))
-        for line in requirement_file.read_text(encoding="utf-8").splitlines()
+    # Mention Playwright only when a test actually used the Browser library
+    browser_enabled = any(
+        (keyword.get("owner") or keyword.get("library")) == "Browser" for keyword in root.iter("kw")
     )
     framework = f"Robot Framework {version}"
     if browser_enabled:
@@ -336,7 +385,6 @@ def generate_report(output_xml, destination=None):
     destination = Path(destination) if destination else output_xml.with_name("execution_dashboard.html")
     root, results = load_results(output_xml)
     summary = calculate_summary(results)
-    pipelines = calculate_pipeline_summary(results)
     completed = calculate_completed_pis(results)
     attention = calculate_failed_pis(results)
     metadata = _execution_metadata(root, output_xml)
@@ -344,13 +392,68 @@ def generate_report(output_xml, destination=None):
     logo_data = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
     logo_uri = f"data:image/png;base64,{logo_data}"
 
+    # Show the Party Interaction (PI) layout only when tests provide PI metadata
+    visible = _visible_optional_columns(results)
+    pi_mode = bool(visible & {"pi_id", "pipeline", "action_type"})
+    if "pipeline" in visible:
+        group_heading = "Pipeline-wise Execution Summary"
+        groups = calculate_pipeline_summary(results)
+    else:
+        group_heading = "Suite-wise Execution Summary"
+        groups = calculate_pipeline_summary(results, key="suite_name")
+
+    if pi_mode:
+        title = "DCM Automation - PI &amp; Execution Summary Report"
+        completed_heading = f"Party Interaction (PI) - Completed ({len(completed)})"
+        attention_heading = f"Party Interaction (PI) - Failed / In-Progress ({len(attention)})"
+        completed_status = lambda result: "COMPLETED"  # noqa: E731
+        attention_status = lambda result: result["pi_status"]  # noqa: E731
+        extra_cards = (
+            ("Completed PIs", len(completed), ""),
+            ("Failed / Stuck PIs", len(attention), ""),
+        )
+    else:
+        title = "DCM Automation - API Execution Summary Report"
+        completed_heading = f"Passed Tests ({len(completed)})"
+        attention_heading = f"Failed Tests ({len(attention)})"
+        completed_status = lambda result: "PASSED"  # noqa: E731
+        attention_status = lambda result: "FAILED" if result["status"] == "FAIL" else result["status"]  # noqa: E731
+        suite_count = len({result["test_suite"] for result in results})
+        extra_cards = (
+            ("Suites", suite_count, ""),
+            ("Total Duration", _format_duration(_elapsed_seconds(root.find("./suite/status"))), ""),
+        )
+
     cards = (
         ("Total Tests", summary["total"], ""),
         ("Passed", summary["passed"], _format_percentage(summary["pass_percentage"]) + " pass rate"),
         ("Failed", summary["failed"], _format_percentage(summary["failure_percentage"]) + " failure rate"),
-        ("Completed PIs", len(completed), ""),
-        ("Failed / Stuck PIs", len(attention), ""),
+        *extra_cards,
         ("Overall Result", status, ""),
+    )
+    header_fields = [
+        ("Report", metadata["date"]),
+        ("Environment", metadata["environment"]),
+        ("Branch", metadata["branch"]),
+        ("Framework", metadata["framework"]),
+        ("Build", metadata["build"]),
+    ]
+    header_html = "\n            ".join(
+        f"<span>{_escape(label)}: {_escape(value)}</span>"
+        for label, value in header_fields
+        if value != MISSING
+    )
+    links = [
+        (label, filename)
+        for label, filename in (("Detailed Robot log", "log.html"), ("Robot report", "report.html"))
+        if (destination.parent / filename).exists()
+    ]
+    links_html = "".join(
+        f'<a class="report-link" href="{_escape(filename)}">{_escape(label)} &rarr;</a>'
+        for label, filename in links
+    )
+    footer_environment = (
+        f" | Environment: {_escape(metadata['environment'])}" if metadata["environment"] != MISSING else ""
     )
     card_html = "\n".join(
         f"""<article class="kpi-card {_status_class(str(value)) if label == "Overall Result" else ""}">
@@ -367,7 +470,7 @@ def generate_report(output_xml, destination=None):
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <title>DCM Automation - PI &amp; Execution Summary Report</title>
+  <title>{title}</title>
   <style>
     :root {{
       --pass: #16a34a; --fail: #dc2626; --warn: #d97706; --primary: #1d4ed8;
@@ -382,7 +485,7 @@ def generate_report(output_xml, destination=None):
     .hero-inner {{ max-width: 1240px; margin: auto; display: flex; gap: 28px;
       justify-content: space-between; align-items: center; }}
     .brand {{ display: flex; align-items: center; gap: 18px; min-width: 0; }}
-    .brand-logo {{ flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+    .brand-logo {{ flex: 0 0 auto; display: flex; align-items: left; justify-content: left;
       width: 190px; height: 72px; overflow: hidden; border-radius: 12px; background: rgba(255,255,255,0.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }}
     .brand-logo img {{ display: block; width: 100%; height: 100%; object-fit: contain; }}
     .brand-copy {{ min-width: 0; }}
@@ -433,7 +536,11 @@ def generate_report(output_xml, destination=None):
     .badge.fail {{ color: #991b1b; background: #fee2e2; }}
     .badge.warn {{ color: #92400e; background: #fef3c7; }}
     .badge.rca {{ color: #1e40af; background: #dbeafe; }}
-    .reason {{ min-width: 220px; max-width: 440px; overflow-wrap: anywhere; }}
+    .reason {{ display: block; min-width: 220px; max-width: 440px; overflow-wrap: anywhere; }}
+    .report-links {{ display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }}
+    .report-link {{ color: #dbeafe; text-decoration: none; font-size: 0.9rem; font-weight: 600;
+      padding: 5px 12px; border: 1px solid #ffffff3d; border-radius: 999px; background: rgba(255,255,255,0.06); }}
+    .report-link:hover {{ background: rgba(255,255,255,0.16); color: white; }}
     .test-name {{ display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }}
     .empty-state {{ padding: 20px; color: var(--muted); text-align: center; }}
     footer {{ padding: 22px; color: #cbd5e1; background: #0f172a; text-align: center; }}
@@ -464,14 +571,11 @@ def generate_report(output_xml, destination=None):
           <img src="{logo_uri}" alt="Tecnotree logo">
         </div>
         <div class="brand-copy">
-          <h1>DCM Automation - PI &amp; Execution Summary Report</h1>
+          <h1>{title}</h1>
           <div class="metadata">
-            <span>Report: {_escape(metadata["date"])}</span>
-            <span>Environment: {_escape(metadata["environment"])}</span>
-            <span>Branch: {_escape(metadata["branch"])}</span>
-            <span>Framework: {_escape(metadata["framework"])}</span>
-            <span>Build: {_escape(metadata["build"])}</span>
+            {header_html}
           </div>
+          {f'<div class="report-links">{links_html}</div>' if links_html else ""}
         </div>
       </div>
       <div class="hero-status">
@@ -487,26 +591,24 @@ def generate_report(output_xml, destination=None):
       <div class="kpi-grid">{card_html}</div>
     </section>
     <section class="section" aria-labelledby="pipeline-heading">
-      <h2 class="section-heading" id="pipeline-heading">Pipeline-wise Execution Summary</h2>
-      <div class="pipeline-grid">{_render_pipeline_cards(pipelines)}</div>
-    </section>
-    <section class="section" aria-labelledby="completed-heading">
-      <h2 class="section-heading" id="completed-heading">Party Interaction (PI) - Completed ({len(completed)})</h2>
-      <div class="table-wrap"><table>
-        <thead><tr><th>#</th><th>PI ID</th><th>Pipeline</th><th>Test Suite</th><th>Action Type</th><th>Status</th></tr></thead>
-        <tbody>{_render_completed_rows(completed)}</tbody>
-      </table></div>
+      <h2 class="section-heading" id="pipeline-heading">{group_heading}</h2>
+      <div class="pipeline-grid">{_render_pipeline_cards(groups)}</div>
     </section>
     <section class="section" aria-labelledby="attention-heading">
-      <h2 class="section-heading" id="attention-heading">Party Interaction (PI) - Failed / In-Progress ({len(attention)})</h2>
+      <h2 class="section-heading" id="attention-heading">{attention_heading}</h2>
       <div class="table-wrap"><table>
-        <thead><tr><th>#</th><th>PI ID</th><th>Pipeline</th><th>Test Suite</th><th>Action Type</th><th>PI Status</th><th>Failure Reason</th><th>RCA</th></tr></thead>
-        <tbody>{_render_attention_rows(attention)}</tbody>
+        {_render_table(attention, visible, attention_status, True, "No failed tests.")}
+      </table></div>
+    </section>
+    <section class="section" aria-labelledby="completed-heading">
+      <h2 class="section-heading" id="completed-heading">{completed_heading}</h2>
+      <div class="table-wrap"><table>
+        {_render_table(completed, visible, completed_status, False, "No passed tests.")}
       </table></div>
     </section>
   </main>
   <footer>
-    <p>Generated { _escape(metadata["date"]) } | Environment: {_escape(metadata["environment"])}</p>
+    <p>Generated { _escape(metadata["date"]) }{footer_environment}</p>
     <p>{_escape(metadata["framework"])}{f" | Build: {_escape(metadata['build'])}" if metadata["build"] != MISSING else ""}</p>
   </footer>
 </body>
