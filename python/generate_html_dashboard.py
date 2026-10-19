@@ -511,12 +511,12 @@ def generate_report(output_xml, destination=None):
     .kpi-card.pass {{ border-top: 3px solid var(--pass); }}
     .kpi-card.fail {{ border-top: 3px solid var(--fail); }}
     .kpi-card.warn {{ border-top: 3px solid var(--warn); }}
-    .pipeline-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }}
-    .pipeline-card {{ padding: 18px 20px; }}
+    .pipeline-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }}
+    .pipeline-card {{ padding: 12px 14px; }}
     .pipeline-heading {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; }}
-    .pipeline-heading h3 {{ margin: 0; font-size: 1.05rem; color: #0f172a; }}
+    .pipeline-heading h3 {{ min-width: 0; margin: 0; overflow: hidden; color: #0f172a; font-size: .95rem; text-overflow: ellipsis; white-space: nowrap; }}
     .pipeline-heading strong {{ color: var(--primary); font-size: 1rem; }}
-    .progress-track {{ height: 10px; margin: 13px 0 9px; overflow: hidden;
+    .progress-track {{ height: 8px; margin: 9px 0 7px; overflow: hidden;
       border-radius: 999px; background: #e2e8f0; }}
     .progress-fill {{ display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #22c55e, #16a34a); }}
     .pipeline-card p {{ margin: 0; color: var(--muted); font-size: 13px; }}
@@ -552,7 +552,6 @@ def generate_report(output_xml, destination=None):
       .brand-logo {{ width: 150px; height: 58px; }}
       .hero-status {{ min-width: 0; }}
       .kpi-grid {{ grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }}
-      .pipeline-grid {{ grid-template-columns: 1fr; }}
       main {{ padding: 0 14px; }}
     }}
     @media (max-width: 460px) {{
