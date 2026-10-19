@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent
 
 # Load credentials from the local .env file into the environment
 load_dotenv(ROOT / ".env")
-TESTS = ROOT / "tests" / "API"
+TESTS = ROOT / "tests" / "Regression Suite"
 REPORTS = ROOT / "reports"
 VENV_SCRIPTS = ROOT / ".venv" / "Scripts"
 

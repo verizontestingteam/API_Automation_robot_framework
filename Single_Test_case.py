@@ -15,7 +15,7 @@ VENV_ROBOT = ROOT / ".venv" / "Scripts" / "robot.exe"
 PYTHON_EXE = str(VENV_PYTHON if VENV_PYTHON.exists() else sys.executable)
 ROBOT_EXE = str(VENV_ROBOT if VENV_ROBOT.exists() else "robot")
 
-TEST_FILE = ROOT / "tests" / "API" / "channel_based_product_filteration.robot"
+TEST_FILE = ROOT / "tests" / "Regression Suite" / "channel_based_product_filteration.robot"
 REPORT_DIR = ROOT / "reports" / "channel_based_product_filteration_retry"
 OUTPUT_XML = REPORT_DIR / "output.xml"
 DOCX_REPORT = REPORT_DIR / "Product_Offering_Test_Report.docx"

@@ -24,7 +24,7 @@ compatibility check and IAM auth. See readme.md for setup and structure.
   validator needs a pytest in tests/python/.
 - Changed Python files must not add new ruff errors (existing old ones are known).
 - Shared Robot keywords go in resources/keywords/; URLs/endpoints in
-  resources/variables/; suites in tests/API/ only call keywords.
+  resources/variables/; suites in tests/Regression Suite/ only call keywords.
 - Test data is CSV in testdata/api/ (DataDriver): first column = unique,
   non-empty test name; one row = one test.
 - Match the existing style: naming, comment density, keyword format.

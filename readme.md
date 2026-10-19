@@ -15,7 +15,7 @@ and `COMPATIBILITY_COOKIE`. `.env` is ignored by Git — never commit it.
 ## Project structure
 
 ```text
-tests/API/                     Robot test suites (product offering, compatibility, auth)
+tests/Regression Suite/        Robot test suites (product offering, compatibility, auth)
 tests/python/                  Pytest tests for the Python validators
 resources/auth/                Token keywords and IAM settings
 resources/keywords/            Shared API keywords
@@ -118,7 +118,7 @@ cover API scenarios.
 
 | Path | Responsibility |
 | --- | --- |
-| `tests\API\` | Robot Framework API test suites |
+| `tests\Regression Suite\` | Robot Framework API test suites |
 | `tests\python\` | Pytest tests for Python validation helpers |
 | `resources\keywords\` | Shared Robot Framework API keywords |
 | `resources\auth\` | Authentication keywords and related variables |

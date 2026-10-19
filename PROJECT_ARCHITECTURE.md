@@ -68,9 +68,9 @@ API Automation robot framework/
 
 | File | Responsibility |
 | --- | --- |
-| `tests\API\channel_based_product_filteration.robot` | Data-driven product-offering API validation |
-| `tests\API\test_compatibility_check.robot` | Data-driven compatibility API validation |
-| `tests\API\test_auth.robot` | OAuth token acquisition check |
+| `tests\Regression Suite\channel_based_product_filteration.robot` | Data-driven product-offering API validation |
+| `tests\Regression Suite\test_compatibility_check.robot` | Data-driven compatibility API validation |
+| `tests\Regression Suite\test_auth.robot` | OAuth token acquisition check |
 | `resources\keywords\api_keywords.robot` | Builds and sends product-offering and compatibility requests |
 | `resources\auth\auth_keywords.robot` | Gets and caches OAuth tokens; integrates secret masking |
 | `resources\auth\credentials.py` | Loads local `.env` credentials into the process environment |

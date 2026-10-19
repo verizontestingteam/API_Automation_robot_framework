@@ -149,7 +149,7 @@
 
           <rect class="box" x="35" y="205" width="250" height="94" fill="#eaf2ff"/>
           <text class="label" x="160" y="240">Robot suite</text>
-          <text class="sub" x="160" y="266">tests\API\*.robot</text>
+          <text class="sub" x="160" y="266">tests\Regression Suite\*.robot</text>
           <text class="sub" x="160" y="286">loop through CSV rows</text>
 
           <rect class="box" x="35" y="369" width="250" height="94" fill="#f2edff"/>
@@ -211,7 +211,7 @@
     <section>
       <h2>Authentication-to-end-to-end execution</h2>
       <ol class="timeline">
-        <li><strong>Robot starts the selected suite.</strong> The command-line test path selects a suite such as <code>tests\API\channel_based_product_filteration.robot</code>. Robot parses its Settings and loads imported libraries, Python helpers, and resource files before executing the test case.</li>
+        <li><strong>Robot starts the selected suite.</strong> The command-line test path selects a suite such as <code>tests\Regression Suite\channel_based_product_filteration.robot</code>. Robot parses its Settings and loads imported libraries, Python helpers, and resource files before executing the test case.</li>
         <li><strong>Variables and test data are resolved.</strong> <code>resources\variables\api_variables.robot</code> provides the product API base URL, endpoint, and CSV path. The suite calls <code>Read Csv</code>, implemented in <code>python\csv_reader.py</code>, and gets a list of dictionaries—one per data row.</li>
         <li><strong>The suite passes a row into the API keyword.</strong> The product suite reads related party, depth, product code, category, and channel. The compatibility suite reads correlation group, SKU list, channel, and brand. Each suite loops through its rows.</li>
         <li><strong>The keyword clears proxy settings and requests an access token.</strong> <code>resources\keywords\api_keywords.robot</code> invokes <code>Get Access Token</code> from <code>resources\auth\auth_keywords.robot</code>. That keyword reads IAM configuration from <code>resources\auth\auth_variables.robot</code>, prepares the form-encoded token request, and sends it to the configured IAM token endpoint.</li>
@@ -221,7 +221,7 @@
         <li><strong>Robot writes run artifacts.</strong> On completion, Robot writes <code>output.xml</code>, <code>log.html</code>, and <code>report.html</code> to the selected output directory. The XML records keyword execution and statuses; the HTML files present the run in browser-readable form.</li>
         <li><strong>Optional post-processing creates a Word report.</strong> <code>python\generate_docx_report.py</code> reads the Robot XML and builds a DOCX summary. This is a separate command and is not automatically run by Robot itself.</li>
       </ol>
-      <p class="note"><strong>Authentication implementation note:</strong> the live API keywords request a token before each API operation. The standalone <code>tests\API\test_auth.robot</code> is only a basic placeholder test that returns a sample token; it does not exercise the live IAM request flow.</p>
+      <p class="note"><strong>Authentication implementation note:</strong> the live API keywords request a token before each API operation. The standalone <code>tests\Regression Suite\test_auth.robot</code> is only a basic placeholder test that returns a sample token; it does not exercise the live IAM request flow.</p>
     </section>
 
     <section>
@@ -230,9 +230,9 @@
       <table class="file-table">
         <thead><tr><th>File</th><th>What it does</th><th>Where it fits in end-to-end flow</th></tr></thead>
         <tbody>
-          <tr><td><code>tests\API\channel_based_product_filteration.robot</code></td><td>Loads product CSV rows, extracts request fields, calls the product API keyword, runs response checks, collects row failures, and fails the suite if any row failed.</td><td>Product-offering test orchestration</td></tr>
-          <tr><td><code>tests\API\test_compatibility_check.robot</code></td><td>Loads compatibility CSV rows, splits the SKU string, sends compatibility requests, validates each response, and retries a false compatibility result up to three times.</td><td>Compatibility test orchestration</td></tr>
-          <tr><td><code>tests\API\test_auth.robot</code></td><td>Contains a small sample-token keyword and a basic non-empty-token test; it is not the live IAM integration test.</td><td>Placeholder/smoke test only</td></tr>
+          <tr><td><code>tests\Regression Suite\channel_based_product_filteration.robot</code></td><td>Loads product CSV rows, extracts request fields, calls the product API keyword, runs response checks, collects row failures, and fails the suite if any row failed.</td><td>Product-offering test orchestration</td></tr>
+          <tr><td><code>tests\Regression Suite\test_compatibility_check.robot</code></td><td>Loads compatibility CSV rows, splits the SKU string, sends compatibility requests, validates each response, and retries a false compatibility result up to three times.</td><td>Compatibility test orchestration</td></tr>
+          <tr><td><code>tests\Regression Suite\test_auth.robot</code></td><td>Contains a small sample-token keyword and a basic non-empty-token test; it is not the live IAM integration test.</td><td>Placeholder/smoke test only</td></tr>
           <tr><td><code>resources\auth\auth_variables.robot</code></td><td>Defines IAM endpoint and OAuth configuration inputs used by the live token keyword. Treat credential values in this file as secrets.</td><td>Token-request configuration</td></tr>
           <tr><td><code>resources\auth\auth_keywords.robot</code></td><td>Removes proxy environment variables, creates an IAM RequestsLibrary session, posts form data, checks HTTP 200 and token presence, then returns the token.</td><td>Live authentication action</td></tr>
           <tr><td><code>resources\variables\api_variables.robot</code></td><td>Defines API base URL, endpoint paths, CSV locations, and shared request settings including the compatibility cookie placeholder.</td><td>Endpoint and data configuration</td></tr>
@@ -272,7 +272,7 @@
     <section>
       <h2>Running and locating reports</h2>
       <h3>Run one API suite</h3>
-      <pre><code>python -m robot --outputdir reports\channel_based_product_filteration tests\API\channel_based_product_filteration.robot</code></pre>
+      <pre><code>python -m robot --outputdir reports\channel_based_product_filteration "tests\Regression Suite\channel_based_product_filteration.robot"</code></pre>
       <h3>Run the parallel test runner</h3>
       <pre><code>.\.venv\Scripts\python.exe run_parallel_tests.py</code></pre>
       <h3>Generate a DOCX from Robot XML</h3>
