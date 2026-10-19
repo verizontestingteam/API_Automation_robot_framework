@@ -501,13 +501,13 @@ def generate_report(output_xml, destination=None):
     main {{ max-width: 1240px; margin: 28px auto 48px; padding: 0 22px; }}
     .section {{ margin-top: 26px; }}
     .section-heading {{ margin: 0 0 15px; color: #0f172a; font-size: 1.15rem; line-height: 1.3; letter-spacing: .01em; font-weight: 700; }}
-    .kpi-grid {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }}
+    .kpi-grid {{ display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; }}
     .kpi-card, .pipeline-card {{ background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); box-shadow: 0 4px 16px rgba(15,23,42,0.06); }}
-    .kpi-card {{ min-height: 124px; padding: 18px 20px; }}
-    .kpi-card > span {{ display: block; color: var(--muted); font-weight: 600; letter-spacing: .01em; }}
-    .kpi-card strong {{ display: block; margin: 7px 0 0; font-size: 30px; line-height: 1.15; color: #0f172a; }}
-    .kpi-card small {{ display: block; margin-top: 6px; color: var(--muted); }}
+    .kpi-card {{ min-height: 88px; padding: 12px 14px; }}
+    .kpi-card > span {{ display: block; color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; }}
+    .kpi-card strong {{ display: block; margin: 4px 0 0; font-size: 22px; line-height: 1.15; color: #0f172a; }}
+    .kpi-card small {{ display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }}
     .kpi-card.pass {{ border-top: 3px solid var(--pass); }}
     .kpi-card.fail {{ border-top: 3px solid var(--fail); }}
     .kpi-card.warn {{ border-top: 3px solid var(--warn); }}
@@ -551,12 +551,12 @@ def generate_report(output_xml, destination=None):
       .brand {{ align-items: flex-start; gap: 14px; }}
       .brand-logo {{ width: 150px; height: 58px; }}
       .hero-status {{ min-width: 0; }}
-      .kpi-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+      .kpi-grid {{ grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }}
       .pipeline-grid {{ grid-template-columns: 1fr; }}
       main {{ padding: 0 14px; }}
     }}
     @media (max-width: 460px) {{
-      .kpi-grid {{ grid-template-columns: 1fr; }}
+      .kpi-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .metadata {{ display: grid; gap: 6px; }}
       .brand {{ flex-direction: column; }}
       .brand-logo {{ width: 170px; height: 62px; }}

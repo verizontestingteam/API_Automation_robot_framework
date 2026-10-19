@@ -77,18 +77,6 @@ def create_report(source_output, destination):
         check=False,
     )
 
-    for filename in (
-        "robot_stdout.out",
-        "robot_stderr.out",
-    ):
-        source_file = source_output.parent / filename
-
-        if source_file.exists():
-            shutil.copy2(
-                source_file,
-                destination / filename
-            )
-
 
 def generate_word_report(output_xml, word_report):
     """
@@ -231,6 +219,15 @@ def main():
             output_file,
             destination
         )
+
+    # --------------------------------------------------
+    # Remove Pabot's working files; keep them only if Pabot itself
+    # errored (exit code above 251), since they hold the console output
+    # --------------------------------------------------
+
+    if pabot_result.returncode <= 251:
+        shutil.rmtree(pabot_results_dir, ignore_errors=True)
+        (REPORTS / ".pabotsuitenames").unlink(missing_ok=True)
 
     # --------------------------------------------------
     # STEP 3: Get combined Pabot output
